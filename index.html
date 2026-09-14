@@ -10,17 +10,38 @@
   <ul id="habitList"></ul>
 
   <script>
+    const habits = [];
+
     document.getElementById("addBtn").addEventListener("click", function() {
       const input = document.getElementById("habitInput");
-      const habitName = input.value;
+      const habitName = input.value.trim();
 
-      if (habitName.trim() !== "") {
-        const li = document.createElement("li");
-        li.textContent = habitName;
-        document.getElementById("habitList").appendChild(li);
+      if (habitName !== "") {
+        habits.push({ name: habitName, streak: 0 });
         input.value = "";
+        renderHabits();
       }
     });
+
+    function renderHabits() {
+      const list = document.getElementById("habitList");
+      list.innerHTML = "";
+
+      habits.forEach(function(habit, index) {
+        const li = document.createElement("li");
+        li.textContent = habit.name + " — Streak: " + habit.streak + " ";
+
+        const doneBtn = document.createElement("button");
+        doneBtn.textContent = "Done today";
+        doneBtn.addEventListener("click", function() {
+          habit.streak++;
+          renderHabits();
+        });
+
+        li.appendChild(doneBtn);
+        list.appendChild(li);
+      });
+    }
   </script>
 </body>
 </html>
