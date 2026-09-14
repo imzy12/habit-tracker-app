@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Habit Tracker</title>
+</head>
+<body>
+  <h1>My Habit Tracker</h1>
+  <input type="text" id="habitInput" placeholder="Enter a habit">
+  <button id="addBtn">Add Habit</button>
+  <ul id="habitList"></ul>
+
+  <script>
+    document.getElementById("addBtn").addEventListener("click", function() {
+      const input = document.getElementById("habitInput");
+      const habitName = input.value;
+
+      if (habitName.trim() !== "") {
+        const li = document.createElement("li");
+        li.textContent = habitName;
+        document.getElementById("habitList").appendChild(li);
+        input.value = "";
+      }
+    });
+  </script>
+</body>
+</html>
