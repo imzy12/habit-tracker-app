@@ -2,53 +2,72 @@
 <html>
 <head>
   <title>Habit Tracker</title>
-</head>
-<body>
-  <h1>My Habit Tracker</h1>
-  <input type="text" id="habitInput" placeholder="Enter a habit">
-  <button id="addBtn">Add Habit</button>
-  <ul id="habitList"></ul>
-
-  <script>
-    let habits = JSON.parse(localStorage.getItem("habits")) || [];
-
-    document.getElementById("addBtn").addEventListener("click", function() {
-      const input = document.getElementById("habitInput");
-      const habitName = input.value.trim();
-
-      if (habitName !== "") {
-        habits.push({ name: habitName, streak: 0 });
-        input.value = "";
-        saveAndRender();
-      }
-    });
-
-    function saveAndRender() {
-      localStorage.setItem("habits", JSON.stringify(habits));
-      renderHabits();
+  <style>
+    body {
+      font-family: -apple-system, Arial, sans-serif;
+      background: #f4f6f8;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 20px;
+      margin: 0;
     }
 
-    function renderHabits() {
-      const list = document.getElementById("habitList");
-      list.innerHTML = "";
-
-      habits.forEach(function(habit, index) {
-        const li = document.createElement("li");
-        li.textContent = habit.name + " — Streak: " + habit.streak + " ";
-
-        const doneBtn = document.createElement("button");
-        doneBtn.textContent = "Done today";
-        doneBtn.addEventListener("click", function() {
-          habit.streak++;
-          saveAndRender();
-        });
-
-        li.appendChild(doneBtn);
-        list.appendChild(li);
-      });
+    h1 {
+      color: #222;
     }
 
-    renderHabits();
-  </script>
-</body>
-</html>
+    .input-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 24px;
+    }
+
+    #habitInput {
+      padding: 10px 14px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      font-size: 15px;
+      width: 220px;
+    }
+
+    #addBtn {
+      padding: 10px 16px;
+      border: none;
+      background: #4a90e2;
+      color: white;
+      border-radius: 8px;
+      font-size: 15px;
+      cursor: pointer;
+    }
+
+    #addBtn:hover {
+      background: #3a7bc8;
+    }
+
+    #habitList {
+      list-style: none;
+      padding: 0;
+      width: 100%;
+      max-width: 360px;
+    }
+
+    #habitList li {
+      background: white;
+      padding: 14px 16px;
+      border-radius: 10px;
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+      font-size: 15px;
+    }
+
+    #habitList button {
+      padding: 6px 12px;
+      border: none;
+      background: #ff9f43;
+      color: white;
+      border-radius: 6px;
+      cursor: pointer;
