@@ -20,10 +20,7 @@
       transition: background 0.3s, color 0.3s;
     }
 
-    body.dark {
-      background: #1c1c1e;
-      color: #f0f0f0;
-    }
+    body.dark { background: #1c1c1e; color: #f0f0f0; }
 
     h1 { font-size: 22px; display: flex; align-items: center; gap: 10px; }
 
@@ -80,14 +77,18 @@
       padding: 14px 16px;
       border-radius: 12px;
       margin-bottom: 10px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
       box-shadow: 0 1px 4px rgba(0,0,0,0.08);
       font-size: 15px;
     }
 
     body.dark #habitList li { background: #2c2c2e; }
+
+    .habit-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
 
     .habit-actions { display: flex; gap: 6px; }
 
@@ -106,6 +107,30 @@
 
     .deleteBtn { background: #e55039; }
     .deleteBtn:hover { background: #c9432b; }
+
+    .week-row {
+      display: flex;
+      gap: 6px;
+      justify-content: space-between;
+    }
+
+    .day-dot {
+      flex: 1;
+      text-align: center;
+      font-size: 11px;
+    }
+
+    .day-dot .circle {
+      width: 20px;
+      height: 20px;
+      margin: 2px auto;
+      border-radius: 50%;
+      background: #e0e0e0;
+    }
+
+    body.dark .day-dot .circle { background: #444; }
+
+    .day-dot .circle.done { background: #4caf50; }
 
     .empty {
       color: #888;
@@ -129,11 +154,25 @@
   <script>
     let habits = JSON.parse(localStorage.getItem("habits")) || [];
 
+    // Make sure older saved habits still have a history array
+    habits.forEach(h => { if (!h.history) h.history = []; });
+
     function todayString() {
       return new Date().toISOString().split("T")[0];
     }
 
-    // Dark mode setup
+    function last7Days() {
+      const days = [];
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        days.push(d.toISOString().split("T")[0]);
+      }
+      return days;
+    }
+
+    const dayLabels = ["S", "M", "T", "W", "T", "F", "S"];
+
     const themeToggle = document.getElementById("themeToggle");
     if (localStorage.getItem("darkMode") === "true") {
       document.body.classList.add("dark");
@@ -152,7 +191,7 @@
       const habitName = input.value.trim();
 
       if (habitName !== "") {
-        habits.push({ name: habitName, streak: 0, lastDone: null });
+        habits.push({ name: habitName, streak: 0, lastDone: null, history: [] });
         input.value = "";
         saveAndRender();
       }
@@ -171,17 +210,19 @@
       emptyMsg.style.display = habits.length === 0 ? "block" : "none";
 
       const today = todayString();
+      const week = last7Days();
 
       habits.forEach(function(habit, index) {
         if (habit.lastDone) {
           const last = new Date(habit.lastDone);
           const diffDays = Math.floor((new Date(today) - last) / (1000 * 60 * 60 * 24));
-          if (diffDays > 1) {
-            habit.streak = 0;
-          }
+          if (diffDays > 1) habit.streak = 0;
         }
 
         const li = document.createElement("li");
+
+        const top = document.createElement("div");
+        top.className = "habit-top";
 
         const text = document.createElement("span");
         text.textContent = habit.name + " — 🔥 " + habit.streak;
@@ -196,6 +237,7 @@
         doneBtn.addEventListener("click", function() {
           habit.streak++;
           habit.lastDone = today;
+          if (!habit.history.includes(today)) habit.history.push(today);
           saveAndRender();
         });
 
@@ -209,8 +251,29 @@
 
         actions.appendChild(doneBtn);
         actions.appendChild(deleteBtn);
-        li.appendChild(text);
-        li.appendChild(actions);
+        top.appendChild(text);
+        top.appendChild(actions);
+
+        const weekRow = document.createElement("div");
+        weekRow.className = "week-row";
+
+        week.forEach(function(dateStr, i) {
+          const dayDiv = document.createElement("div");
+          dayDiv.className = "day-dot";
+
+          const label = document.createElement("div");
+          label.textContent = dayLabels[new Date(dateStr).getDay()];
+
+          const circle = document.createElement("div");
+          circle.className = "circle" + (habit.history.includes(dateStr) ? " done" : "");
+
+          dayDiv.appendChild(label);
+          dayDiv.appendChild(circle);
+          weekRow.appendChild(dayDiv);
+        });
+
+        li.appendChild(top);
+        li.appendChild(weekRow);
         list.appendChild(li);
       });
 
