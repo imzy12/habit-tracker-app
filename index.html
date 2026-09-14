@@ -138,7 +138,6 @@
       const today = todayString();
 
       habits.forEach(function(habit, index) {
-        // Check if a day was missed (more than 1 day since lastDone) and reset streak
         if (habit.lastDone) {
           const last = new Date(habit.lastDone);
           const diffDays = Math.floor((new Date(today) - last) / (1000 * 60 * 60 * 24));
