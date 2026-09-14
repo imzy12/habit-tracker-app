@@ -10,7 +10,7 @@
   <ul id="habitList"></ul>
 
   <script>
-    const habits = [];
+    let habits = JSON.parse(localStorage.getItem("habits")) || [];
 
     document.getElementById("addBtn").addEventListener("click", function() {
       const input = document.getElementById("habitInput");
@@ -19,9 +19,14 @@
       if (habitName !== "") {
         habits.push({ name: habitName, streak: 0 });
         input.value = "";
-        renderHabits();
+        saveAndRender();
       }
     });
+
+    function saveAndRender() {
+      localStorage.setItem("habits", JSON.stringify(habits));
+      renderHabits();
+    }
 
     function renderHabits() {
       const list = document.getElementById("habitList");
@@ -35,13 +40,15 @@
         doneBtn.textContent = "Done today";
         doneBtn.addEventListener("click", function() {
           habit.streak++;
-          renderHabits();
+          saveAndRender();
         });
 
         li.appendChild(doneBtn);
         list.appendChild(li);
       });
     }
+
+    renderHabits();
   </script>
 </body>
 </html>
