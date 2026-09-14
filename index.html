@@ -1,49 +1,53 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Habit Tracker</title>
+  <link rel="manifest" href="manifest.json">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
   <style>
+    * { box-sizing: border-box; }
     body {
-      font-family: -apple-system, Arial, sans-serif;
+      font-family: 'Poppins', sans-serif;
       background: #f4f6f8;
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding: 40px 20px;
+      padding: 40px 16px;
       margin: 0;
+      min-height: 100vh;
     }
 
-    h1 {
-      color: #222;
-    }
+    h1 { color: #222; font-size: 22px; }
 
     .input-row {
       display: flex;
       gap: 8px;
       margin-bottom: 24px;
+      width: 100%;
+      max-width: 360px;
     }
 
     #habitInput {
-      padding: 10px 14px;
+      flex: 1;
+      padding: 12px 14px;
       border: 1px solid #ccc;
-      border-radius: 8px;
+      border-radius: 10px;
       font-size: 15px;
-      width: 220px;
     }
 
     #addBtn {
-      padding: 10px 16px;
+      padding: 12px 16px;
       border: none;
       background: #4a90e2;
       color: white;
-      border-radius: 8px;
+      border-radius: 10px;
       font-size: 15px;
       cursor: pointer;
     }
 
-    #addBtn:hover {
-      background: #3a7bc8;
-    }
+    #addBtn:hover { background: #3a7bc8; }
 
     #habitList {
       list-style: none;
@@ -55,7 +59,7 @@
     #habitList li {
       background: white;
       padding: 14px 16px;
-      border-radius: 10px;
+      border-radius: 12px;
       margin-bottom: 10px;
       display: flex;
       justify-content: space-between;
@@ -64,18 +68,29 @@
       font-size: 15px;
     }
 
-    #habitList button {
-      padding: 6px 12px;
+    .habit-actions { display: flex; gap: 6px; }
+
+    .doneBtn, .deleteBtn {
+      padding: 6px 10px;
       border: none;
-      background: #ff9f43;
-      color: white;
       border-radius: 6px;
       cursor: pointer;
       font-size: 13px;
+      color: white;
     }
 
-    #habitList button:hover {
-      background: #e68a2e;
+    .doneBtn { background: #ff9f43; }
+    .doneBtn:hover { background: #e68a2e; }
+    .doneBtn:disabled { background: #ccc; cursor: not-allowed; }
+
+    .deleteBtn { background: #e55039; }
+    .deleteBtn:hover { background: #c9432b; }
+
+    .empty {
+      color: #888;
+      font-size: 14px;
+      margin-top: 20px;
+      text-align: center;
     }
   </style>
 </head>
@@ -84,20 +99,25 @@
 
   <div class="input-row">
     <input type="text" id="habitInput" placeholder="Enter a habit">
-    <button id="addBtn">Add Habit</button>
+    <button id="addBtn">Add</button>
   </div>
 
   <ul id="habitList"></ul>
+  <p class="empty" id="emptyMsg">No habits yet — add one to get started!</p>
 
   <script>
     let habits = JSON.parse(localStorage.getItem("habits")) || [];
+
+    function todayString() {
+      return new Date().toISOString().split("T")[0];
+    }
 
     document.getElementById("addBtn").addEventListener("click", function() {
       const input = document.getElementById("habitInput");
       const habitName = input.value.trim();
 
       if (habitName !== "") {
-        habits.push({ name: habitName, streak: 0 });
+        habits.push({ name: habitName, streak: 0, lastDone: null });
         input.value = "";
         saveAndRender();
       }
@@ -110,25 +130,57 @@
 
     function renderHabits() {
       const list = document.getElementById("habitList");
+      const emptyMsg = document.getElementById("emptyMsg");
       list.innerHTML = "";
 
-      habits.forEach(function(habit) {
+      emptyMsg.style.display = habits.length === 0 ? "block" : "none";
+
+      const today = todayString();
+
+      habits.forEach(function(habit, index) {
+        // Check if a day was missed (more than 1 day since lastDone) and reset streak
+        if (habit.lastDone) {
+          const last = new Date(habit.lastDone);
+          const diffDays = Math.floor((new Date(today) - last) / (1000 * 60 * 60 * 24));
+          if (diffDays > 1) {
+            habit.streak = 0;
+          }
+        }
+
         const li = document.createElement("li");
 
         const text = document.createElement("span");
         text.textContent = habit.name + " — 🔥 " + habit.streak;
 
+        const actions = document.createElement("div");
+        actions.className = "habit-actions";
+
         const doneBtn = document.createElement("button");
-        doneBtn.textContent = "Done today";
+        doneBtn.textContent = habit.lastDone === today ? "Done ✓" : "Done today";
+        doneBtn.className = "doneBtn";
+        doneBtn.disabled = habit.lastDone === today;
         doneBtn.addEventListener("click", function() {
           habit.streak++;
+          habit.lastDone = today;
           saveAndRender();
         });
 
+        const deleteBtn = document.createElement("button");
+        deleteBtn.textContent = "Delete";
+        deleteBtn.className = "deleteBtn";
+        deleteBtn.addEventListener("click", function() {
+          habits.splice(index, 1);
+          saveAndRender();
+        });
+
+        actions.appendChild(doneBtn);
+        actions.appendChild(deleteBtn);
         li.appendChild(text);
-        li.appendChild(doneBtn);
+        li.appendChild(actions);
         list.appendChild(li);
       });
+
+      localStorage.setItem("habits", JSON.stringify(habits));
     }
 
     renderHabits();
