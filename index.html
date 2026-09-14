@@ -71,3 +71,67 @@
       color: white;
       border-radius: 6px;
       cursor: pointer;
+      font-size: 13px;
+    }
+
+    #habitList button:hover {
+      background: #e68a2e;
+    }
+  </style>
+</head>
+<body>
+  <h1>🔥 My Habit Tracker</h1>
+
+  <div class="input-row">
+    <input type="text" id="habitInput" placeholder="Enter a habit">
+    <button id="addBtn">Add Habit</button>
+  </div>
+
+  <ul id="habitList"></ul>
+
+  <script>
+    let habits = JSON.parse(localStorage.getItem("habits")) || [];
+
+    document.getElementById("addBtn").addEventListener("click", function() {
+      const input = document.getElementById("habitInput");
+      const habitName = input.value.trim();
+
+      if (habitName !== "") {
+        habits.push({ name: habitName, streak: 0 });
+        input.value = "";
+        saveAndRender();
+      }
+    });
+
+    function saveAndRender() {
+      localStorage.setItem("habits", JSON.stringify(habits));
+      renderHabits();
+    }
+
+    function renderHabits() {
+      const list = document.getElementById("habitList");
+      list.innerHTML = "";
+
+      habits.forEach(function(habit) {
+        const li = document.createElement("li");
+
+        const text = document.createElement("span");
+        text.textContent = habit.name + " — 🔥 " + habit.streak;
+
+        const doneBtn = document.createElement("button");
+        doneBtn.textContent = "Done today";
+        doneBtn.addEventListener("click", function() {
+          habit.streak++;
+          saveAndRender();
+        });
+
+        li.appendChild(text);
+        li.appendChild(doneBtn);
+        list.appendChild(li);
+      });
+    }
+
+    renderHabits();
+  </script>
+</body>
+</html>
