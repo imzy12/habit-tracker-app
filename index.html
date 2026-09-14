@@ -35,6 +35,30 @@
 
     body.dark #themeToggle { background: #444; color: white; }
 
+    .reminder-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 20px;
+      font-size: 13px;
+    }
+
+    #reminderTime {
+      padding: 6px 8px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+    }
+
+    #enableNotif {
+      padding: 6px 10px;
+      border: none;
+      background: #4a90e2;
+      color: white;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+
     .input-row {
       display: flex;
       gap: 8px;
@@ -143,6 +167,12 @@
 <body>
   <h1>🔥 My Habit Tracker <button id="themeToggle">🌙 Dark</button></h1>
 
+  <div class="reminder-row">
+    <span>Remind me at</span>
+    <input type="time" id="reminderTime">
+    <button id="enableNotif">Enable</button>
+  </div>
+
   <div class="input-row">
     <input type="text" id="habitInput" placeholder="Enter a habit">
     <button id="addBtn">Add</button>
@@ -153,8 +183,6 @@
 
   <script>
     let habits = JSON.parse(localStorage.getItem("habits")) || [];
-
-    // Make sure older saved habits still have a history array
     habits.forEach(h => { if (!h.history) h.history = []; });
 
     function todayString() {
@@ -185,6 +213,46 @@
       localStorage.setItem("darkMode", isDark);
       themeToggle.textContent = isDark ? "☀️ Light" : "🌙 Dark";
     });
+
+    // Reminder setup
+    const reminderInput = document.getElementById("reminderTime");
+    const savedTime = localStorage.getItem("reminderTime");
+    if (savedTime) reminderInput.value = savedTime;
+
+    reminderInput.addEventListener("change", function() {
+      localStorage.setItem("reminderTime", reminderInput.value);
+    });
+
+    document.getElementById("enableNotif").addEventListener("click", function() {
+      if (!("Notification" in window)) {
+        alert("Notifications aren't supported in this browser.");
+        return;
+      }
+      Notification.requestPermission().then(function(permission) {
+        if (permission === "granted") {
+          alert("Reminders enabled! Keep this app open/in a tab around your reminder time to get notified.");
+        }
+      });
+    });
+
+    setInterval(function() {
+      const time = localStorage.getItem("reminderTime");
+      if (!time || Notification.permission !== "granted") return;
+
+      const now = new Date();
+      const currentTime = now.toTimeString().slice(0, 5);
+      const alreadyNotifiedToday = localStorage.getItem("notifiedDate") === todayString();
+
+      if (currentTime === time && !alreadyNotifiedToday) {
+        const undone = habits.filter(h => h.lastDone !== todayString());
+        if (undone.length > 0) {
+          new Notification("Habit Tracker", {
+            body: "You still have " + undone.length + " habit(s) to complete today!"
+          });
+        }
+        localStorage.setItem("notifiedDate", todayString());
+      }
+    }, 30000);
 
     document.getElementById("addBtn").addEventListener("click", function() {
       const input = document.getElementById("habitInput");
@@ -220,7 +288,6 @@
         }
 
         const li = document.createElement("li");
-
         const top = document.createElement("div");
         top.className = "habit-top";
 
@@ -257,7 +324,7 @@
         const weekRow = document.createElement("div");
         weekRow.className = "week-row";
 
-        week.forEach(function(dateStr, i) {
+        week.forEach(function(dateStr) {
           const dayDiv = document.createElement("div");
           dayDiv.className = "day-dot";
 
