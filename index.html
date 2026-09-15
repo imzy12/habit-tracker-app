@@ -11,62 +11,50 @@
     body {
       font-family: 'Poppins', sans-serif;
       background: #f4f6f8;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 40px 16px;
       margin: 0;
       min-height: 100vh;
       transition: background 0.3s, color 0.3s;
     }
-
     body.dark { background: #1c1c1e; color: #f0f0f0; }
 
-    h1 { font-size: 22px; display: flex; align-items: center; gap: 10px; }
-
-    #themeToggle {
-      border: none;
-      background: #ddd;
-      border-radius: 20px;
-      padding: 6px 12px;
-      cursor: pointer;
-      font-size: 13px;
-    }
-
-    body.dark #themeToggle { background: #444; color: white; }
-
-    .reminder-row {
+    /* Onboarding screen */
+    #onboarding {
       display: flex;
+      flex-direction: column;
       align-items: center;
-      gap: 8px;
-      margin-bottom: 20px;
-      font-size: 13px;
+      justify-content: center;
+      height: 100vh;
+      text-align: center;
+      padding: 30px;
     }
-
-    #reminderTime {
-      padding: 6px 8px;
-      border-radius: 6px;
-      border: 1px solid #ccc;
-    }
-
-    #enableNotif {
-      padding: 6px 10px;
+    #onboarding .emoji { font-size: 60px; margin-bottom: 10px; }
+    #onboarding h1 { font-size: 24px; margin-bottom: 6px; }
+    #onboarding p { color: #666; max-width: 300px; margin-bottom: 30px; }
+    body.dark #onboarding p { color: #aaa; }
+    #getStartedBtn {
+      padding: 14px 28px;
       border: none;
       background: #4a90e2;
       color: white;
-      border-radius: 6px;
+      border-radius: 12px;
+      font-size: 15px;
       cursor: pointer;
-      font-size: 12px;
     }
 
-    .input-row {
+    /* App shell */
+    #app { display: none; padding: 30px 16px 90px 16px; max-width: 400px; margin: 0 auto; }
+    .page { display: none; }
+    .page.active { display: block; }
+
+    .top-bar {
       display: flex;
-      gap: 8px;
-      margin-bottom: 24px;
-      width: 100%;
-      max-width: 360px;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
     }
+    .top-bar h2 { font-size: 20px; margin: 0; }
 
+    .input-row { display: flex; gap: 8px; margin-bottom: 20px; }
     #habitInput {
       flex: 1;
       padding: 12px 14px;
@@ -74,9 +62,7 @@
       border-radius: 10px;
       font-size: 15px;
     }
-
     body.dark #habitInput { background: #2c2c2e; color: white; border-color: #555; }
-
     #addBtn {
       padding: 12px 16px;
       border: none;
@@ -87,15 +73,7 @@
       cursor: pointer;
     }
 
-    #addBtn:hover { background: #3a7bc8; }
-
-    #habitList {
-      list-style: none;
-      padding: 0;
-      width: 100%;
-      max-width: 360px;
-    }
-
+    #habitList { list-style: none; padding: 0; margin: 0; }
     #habitList li {
       background: white;
       padding: 14px 16px;
@@ -104,91 +82,113 @@
       box-shadow: 0 1px 4px rgba(0,0,0,0.08);
       font-size: 15px;
     }
-
     body.dark #habitList li { background: #2c2c2e; }
 
-    .habit-top {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 10px;
-    }
-
+    .habit-top { display: flex; justify-content: space-between; align-items: center; }
     .habit-actions { display: flex; gap: 6px; }
-
     .doneBtn, .deleteBtn {
-      padding: 6px 10px;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 13px;
-      color: white;
+      padding: 6px 10px; border: none; border-radius: 6px;
+      cursor: pointer; font-size: 13px; color: white;
     }
-
     .doneBtn { background: #ff9f43; }
-    .doneBtn:hover { background: #e68a2e; }
     .doneBtn:disabled { background: #ccc; cursor: not-allowed; }
-
     .deleteBtn { background: #e55039; }
-    .deleteBtn:hover { background: #c9432b; }
 
-    .week-row {
-      display: flex;
-      gap: 6px;
-      justify-content: space-between;
-    }
+    .empty { color: #888; font-size: 14px; margin-top: 20px; text-align: center; }
 
-    .day-dot {
-      flex: 1;
-      text-align: center;
-      font-size: 11px;
-    }
-
-    .day-dot .circle {
-      width: 20px;
-      height: 20px;
-      margin: 2px auto;
-      border-radius: 50%;
-      background: #e0e0e0;
-    }
-
+    /* Stats page */
+    .stat-habit { background: white; border-radius: 12px; padding: 14px 16px; margin-bottom: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+    body.dark .stat-habit { background: #2c2c2e; }
+    .stat-habit .name { font-weight: 600; margin-bottom: 8px; }
+    .week-row { display: flex; gap: 6px; justify-content: space-between; }
+    .day-dot { flex: 1; text-align: center; font-size: 11px; }
+    .day-dot .circle { width: 20px; height: 20px; margin: 2px auto; border-radius: 50%; background: #e0e0e0; }
     body.dark .day-dot .circle { background: #444; }
-
     .day-dot .circle.done { background: #4caf50; }
 
-    .empty {
-      color: #888;
-      font-size: 14px;
-      margin-top: 20px;
-      text-align: center;
+    /* Settings page */
+    .setting-row {
+      display: flex; justify-content: space-between; align-items: center;
+      background: white; padding: 14px 16px; border-radius: 12px; margin-bottom: 12px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08); font-size: 14px;
     }
+    body.dark .setting-row { background: #2c2c2e; }
+    .setting-row button, .setting-row input {
+      padding: 6px 10px; border-radius: 6px; border: 1px solid #ccc; font-size: 13px;
+    }
+    #themeToggle { border: none; background: #4a90e2; color: white; cursor: pointer; }
+
+    /* Bottom nav */
+    .bottom-nav {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      background: white; display: flex; justify-content: space-around;
+      padding: 10px 0; box-shadow: 0 -1px 6px rgba(0,0,0,0.1);
+    }
+    body.dark .bottom-nav { background: #2c2c2e; }
+    .nav-btn {
+      background: none; border: none; font-size: 12px; color: #888;
+      display: flex; flex-direction: column; align-items: center; gap: 2px; cursor: pointer;
+    }
+    .nav-btn .icon { font-size: 20px; }
+    .nav-btn.active { color: #4a90e2; }
   </style>
 </head>
 <body>
-  <h1>🔥 My Habit Tracker <button id="themeToggle">🌙 Dark</button></h1>
 
-  <div class="reminder-row">
-    <span>Remind me at</span>
-    <input type="time" id="reminderTime">
-    <button id="enableNotif">Enable</button>
+  <!-- Onboarding screen -->
+  <div id="onboarding">
+    <div class="emoji">🔥</div>
+    <h1>Welcome to Habit Tracker</h1>
+    <p>Build daily streaks, track your progress, and stay consistent — all saved right on your device.</p>
+    <button id="getStartedBtn">Get Started</button>
   </div>
 
-  <div class="input-row">
-    <input type="text" id="habitInput" placeholder="Enter a habit">
-    <button id="addBtn">Add</button>
-  </div>
+  <!-- Main app -->
+  <div id="app">
 
-  <ul id="habitList"></ul>
-  <p class="empty" id="emptyMsg">No habits yet — add one to get started!</p>
+    <div class="page active" id="page-home">
+      <div class="top-bar"><h2>🔥 My Habits</h2></div>
+      <div class="input-row">
+        <input type="text" id="habitInput" placeholder="Enter a habit">
+        <button id="addBtn">Add</button>
+      </div>
+      <ul id="habitList"></ul>
+      <p class="empty" id="emptyMsg">No habits yet — add one to get started!</p>
+    </div>
+
+    <div class="page" id="page-stats">
+      <div class="top-bar"><h2>📊 Stats</h2></div>
+      <div id="statsList"></div>
+    </div>
+
+    <div class="page" id="page-settings">
+      <div class="top-bar"><h2>⚙️ Settings</h2></div>
+      <div class="setting-row">
+        <span>Dark mode</span>
+        <button id="themeToggle">🌙 Toggle</button>
+      </div>
+      <div class="setting-row">
+        <span>Daily reminder</span>
+        <input type="time" id="reminderTime">
+      </div>
+      <div class="setting-row">
+        <span>Enable notifications</span>
+        <button id="enableNotif">Enable</button>
+      </div>
+    </div>
+
+    <nav class="bottom-nav">
+      <button class="nav-btn active" data-page="home"><span class="icon">🏠</span>Home</button>
+      <button class="nav-btn" data-page="stats"><span class="icon">📊</span>Stats</button>
+      <button class="nav-btn" data-page="settings"><span class="icon">⚙️</span>Settings</button>
+    </nav>
+  </div>
 
   <script>
     let habits = JSON.parse(localStorage.getItem("habits")) || [];
     habits.forEach(h => { if (!h.history) h.history = []; });
 
-    function todayString() {
-      return new Date().toISOString().split("T")[0];
-    }
-
+    function todayString() { return new Date().toISOString().split("T")[0]; }
     function last7Days() {
       const days = [];
       for (let i = 6; i >= 0; i--) {
@@ -198,68 +198,74 @@
       }
       return days;
     }
+    const dayLabels = ["S","M","T","W","T","F","S"];
 
-    const dayLabels = ["S", "M", "T", "W", "T", "F", "S"];
-
-    const themeToggle = document.getElementById("themeToggle");
-    if (localStorage.getItem("darkMode") === "true") {
-      document.body.classList.add("dark");
-      themeToggle.textContent = "☀️ Light";
+    // Onboarding logic
+    const onboarding = document.getElementById("onboarding");
+    const app = document.getElementById("app");
+    if (localStorage.getItem("onboarded") === "true") {
+      onboarding.style.display = "none";
+      app.style.display = "block";
     }
-
-    themeToggle.addEventListener("click", function() {
-      document.body.classList.toggle("dark");
-      const isDark = document.body.classList.contains("dark");
-      localStorage.setItem("darkMode", isDark);
-      themeToggle.textContent = isDark ? "☀️ Light" : "🌙 Dark";
+    document.getElementById("getStartedBtn").addEventListener("click", function() {
+      localStorage.setItem("onboarded", "true");
+      onboarding.style.display = "none";
+      app.style.display = "block";
     });
 
-    // Reminder setup
-    const reminderInput = document.getElementById("reminderTime");
-    const savedTime = localStorage.getItem("reminderTime");
-    if (savedTime) reminderInput.value = savedTime;
-
-    reminderInput.addEventListener("change", function() {
-      localStorage.setItem("reminderTime", reminderInput.value);
-    });
-
-    document.getElementById("enableNotif").addEventListener("click", function() {
-      if (!("Notification" in window)) {
-        alert("Notifications aren't supported in this browser.");
-        return;
-      }
-      Notification.requestPermission().then(function(permission) {
-        if (permission === "granted") {
-          alert("Reminders enabled! Keep this app open/in a tab around your reminder time to get notified.");
-        }
+    // Navigation logic
+    document.querySelectorAll(".nav-btn").forEach(function(btn) {
+      btn.addEventListener("click", function() {
+        document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
+        document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+        btn.classList.add("active");
+        document.getElementById("page-" + btn.dataset.page).classList.add("active");
+        if (btn.dataset.page === "stats") renderStats();
       });
     });
 
+    // Theme
+    const themeToggle = document.getElementById("themeToggle");
+    if (localStorage.getItem("darkMode") === "true") document.body.classList.add("dark");
+    themeToggle.addEventListener("click", function() {
+      document.body.classList.toggle("dark");
+      localStorage.setItem("darkMode", document.body.classList.contains("dark"));
+    });
+
+    // Reminders
+    const reminderInput = document.getElementById("reminderTime");
+    const savedTime = localStorage.getItem("reminderTime");
+    if (savedTime) reminderInput.value = savedTime;
+    reminderInput.addEventListener("change", function() {
+      localStorage.setItem("reminderTime", reminderInput.value);
+    });
+    document.getElementById("enableNotif").addEventListener("click", function() {
+      if (!("Notification" in window)) { alert("Not supported in this browser."); return; }
+      Notification.requestPermission().then(function(p) {
+        if (p === "granted") alert("Reminders enabled! Keep a tab open around your reminder time.");
+      });
+    });
     setInterval(function() {
       const time = localStorage.getItem("reminderTime");
       if (!time || Notification.permission !== "granted") return;
-
       const now = new Date();
-      const currentTime = now.toTimeString().slice(0, 5);
-      const alreadyNotifiedToday = localStorage.getItem("notifiedDate") === todayString();
-
-      if (currentTime === time && !alreadyNotifiedToday) {
+      const currentTime = now.toTimeString().slice(0,5);
+      const alreadyNotified = localStorage.getItem("notifiedDate") === todayString();
+      if (currentTime === time && !alreadyNotified) {
         const undone = habits.filter(h => h.lastDone !== todayString());
         if (undone.length > 0) {
-          new Notification("Habit Tracker", {
-            body: "You still have " + undone.length + " habit(s) to complete today!"
-          });
+          new Notification("Habit Tracker", { body: undone.length + " habit(s) still to do today!" });
         }
         localStorage.setItem("notifiedDate", todayString());
       }
     }, 30000);
 
+    // Habits (Home page)
     document.getElementById("addBtn").addEventListener("click", function() {
       const input = document.getElementById("habitInput");
-      const habitName = input.value.trim();
-
-      if (habitName !== "") {
-        habits.push({ name: habitName, streak: 0, lastDone: null, history: [] });
+      const name = input.value.trim();
+      if (name !== "") {
+        habits.push({ name: name, streak: 0, lastDone: null, history: [] });
         input.value = "";
         saveAndRender();
       }
@@ -274,29 +280,21 @@
       const list = document.getElementById("habitList");
       const emptyMsg = document.getElementById("emptyMsg");
       list.innerHTML = "";
-
       emptyMsg.style.display = habits.length === 0 ? "block" : "none";
-
       const today = todayString();
-      const week = last7Days();
 
       habits.forEach(function(habit, index) {
         if (habit.lastDone) {
-          const last = new Date(habit.lastDone);
-          const diffDays = Math.floor((new Date(today) - last) / (1000 * 60 * 60 * 24));
-          if (diffDays > 1) habit.streak = 0;
+          const diff = Math.floor((new Date(today) - new Date(habit.lastDone)) / 86400000);
+          if (diff > 1) habit.streak = 0;
         }
-
         const li = document.createElement("li");
         const top = document.createElement("div");
         top.className = "habit-top";
-
         const text = document.createElement("span");
         text.textContent = habit.name + " — 🔥 " + habit.streak;
-
         const actions = document.createElement("div");
         actions.className = "habit-actions";
-
         const doneBtn = document.createElement("button");
         doneBtn.textContent = habit.lastDone === today ? "Done ✓" : "Done today";
         doneBtn.className = "doneBtn";
@@ -307,7 +305,6 @@
           if (!habit.history.includes(today)) habit.history.push(today);
           saveAndRender();
         });
-
         const deleteBtn = document.createElement("button");
         deleteBtn.textContent = "Delete";
         deleteBtn.className = "deleteBtn";
@@ -315,36 +312,48 @@
           habits.splice(index, 1);
           saveAndRender();
         });
-
         actions.appendChild(doneBtn);
         actions.appendChild(deleteBtn);
         top.appendChild(text);
         top.appendChild(actions);
+        li.appendChild(top);
+        list.appendChild(li);
+      });
+      localStorage.setItem("habits", JSON.stringify(habits));
+    }
 
+    // Stats page
+    function renderStats() {
+      const container = document.getElementById("statsList");
+      container.innerHTML = "";
+      if (habits.length === 0) {
+        container.innerHTML = "<p class='empty'>Add habits on the Home tab to see stats here.</p>";
+        return;
+      }
+      const week = last7Days();
+      habits.forEach(function(habit) {
+        const card = document.createElement("div");
+        card.className = "stat-habit";
+        const name = document.createElement("div");
+        name.className = "name";
+        name.textContent = habit.name + " — 🔥 " + habit.streak + " day streak";
         const weekRow = document.createElement("div");
         weekRow.className = "week-row";
-
         week.forEach(function(dateStr) {
           const dayDiv = document.createElement("div");
           dayDiv.className = "day-dot";
-
           const label = document.createElement("div");
           label.textContent = dayLabels[new Date(dateStr).getDay()];
-
           const circle = document.createElement("div");
           circle.className = "circle" + (habit.history.includes(dateStr) ? " done" : "");
-
           dayDiv.appendChild(label);
           dayDiv.appendChild(circle);
           weekRow.appendChild(dayDiv);
         });
-
-        li.appendChild(top);
-        li.appendChild(weekRow);
-        list.appendChild(li);
+        card.appendChild(name);
+        card.appendChild(weekRow);
+        container.appendChild(card);
       });
-
-      localStorage.setItem("habits", JSON.stringify(habits));
     }
 
     renderHabits();
