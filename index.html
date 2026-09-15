@@ -60,11 +60,15 @@
     .badge.unlocked { opacity: 1; }
     .badge .icon { font-size: 26px; display: block; margin-bottom: 4px; }
     .badge .label { font-size: 11px; }
-    #celebration { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); align-items: center; justify-content: center; z-index: 100; }
-    #celebration .box { background: white; border-radius: 16px; padding: 30px; text-align: center; max-width: 280px; }
-    body.dark #celebration .box { background: #2c2c2e; color: white; }
+    #celebration, #dayModal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); align-items: center; justify-content: center; z-index: 100; }
+    #celebration .box, #dayModal .box { background: white; border-radius: 16px; padding: 24px; text-align: center; max-width: 300px; width: 85%; }
+    body.dark #celebration .box, body.dark #dayModal .box { background: #2c2c2e; color: white; }
     #celebration .icon { font-size: 50px; margin-bottom: 10px; }
-    #celebration button { margin-top: 16px; padding: 10px 20px; border: none; background: #4a90e2; color: white; border-radius: 8px; cursor: pointer; }
+    #celebration button, #dayModal button { margin-top: 16px; padding: 10px 20px; border: none; background: #4a90e2; color: white; border-radius: 8px; cursor: pointer; }
+    .day-modal-list { list-style: none; padding: 0; margin: 14px 0; text-align: left; }
+    .day-modal-list li { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #eee; font-size: 14px; }
+    body.dark .day-modal-list li { border-bottom: 1px solid #444; }
+    .day-modal-list .status { font-size: 16px; }
     .heatmap-card { background: white; border-radius: 12px; padding: 14px 16px; margin-bottom: 20px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
     body.dark .heatmap-card { background: #2c2c2e; }
     .heatmap-tabs { display: flex; gap: 6px; margin-bottom: 12px; }
@@ -74,7 +78,7 @@
     .heatmap-scroll { overflow-x: auto; padding-bottom: 4px; }
     .heatmap-grid { display: grid; grid-auto-flow: column; grid-template-rows: repeat(7, 12px); gap: 3px; width: max-content; }
     .heatmap-grid.simple-row { grid-auto-flow: row; grid-template-columns: repeat(10, 1fr); grid-template-rows: none; width: 100%; }
-    .heatmap-cell { width: 12px; height: 12px; border-radius: 3px; background: #e0e0e0; }
+    .heatmap-cell { width: 12px; height: 12px; border-radius: 3px; background: #e0e0e0; cursor: pointer; }
     body.dark .heatmap-cell { background: #444; }
     .heatmap-cell.l1 { background: #b7e4c7; }
     .heatmap-cell.l2 { background: #6fcf97; }
@@ -83,8 +87,6 @@
     .heatmap-bar-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; }
     .heatmap-bar { width: 100%; background: #4a90e2; border-radius: 3px 3px 0 0; min-height: 2px; }
     .heatmap-bar-label { font-size: 9px; margin-top: 4px; color: #888; }
-
-    /* Detail page */
     .detail-hero { text-align: center; margin-bottom: 20px; }
     .detail-hero .streak-num { font-size: 42px; font-weight: 600; }
     .detail-hero .streak-label { font-size: 13px; color: #888; }
@@ -93,10 +95,7 @@
     body.dark .detail-stat-box { background: #2c2c2e; }
     .detail-stat-box .num { font-size: 20px; font-weight: 600; }
     .detail-stat-box .label { font-size: 11px; color: #888; }
-    #detailNotes {
-      width: 100%; min-height: 80px; padding: 12px; border-radius: 10px; border: 1px solid #ccc;
-      font-family: inherit; font-size: 14px; resize: vertical;
-    }
+    #detailNotes { width: 100%; min-height: 80px; padding: 12px; border-radius: 10px; border: 1px solid #ccc; font-family: inherit; font-size: 14px; resize: vertical; }
     body.dark #detailNotes { background: #2c2c2e; color: white; border-color: #555; }
     .section-label { font-size: 14px; margin: 20px 0 8px 0; font-weight: 600; }
   </style>
@@ -180,6 +179,14 @@
       <div class="icon" id="celebrationIcon">🎉</div>
       <div id="celebrationText"></div>
       <button onclick="document.getElementById('celebration').style.display='none'">Nice!</button>
+    </div>
+  </div>
+
+  <div id="dayModal">
+    <div class="box">
+      <div id="dayModalDate" style="font-weight:600; font-size:16px;"></div>
+      <ul class="day-modal-list" id="dayModalList"></ul>
+      <button onclick="document.getElementById('dayModal').style.display='none'">Close</button>
     </div>
   </div>
 
@@ -310,6 +317,29 @@
       document.getElementById("celebration").style.display = "flex";
     }
 
+    function showDayDetail(dateStr) {
+      document.getElementById("dayModalDate").textContent = dateStr;
+      const list = document.getElementById("dayModalList");
+      list.innerHTML = "";
+      if (habits.length === 0) {
+        list.innerHTML = "<li>No habits yet</li>";
+      } else {
+        habits.forEach(function(habit) {
+          const done = habit.history.includes(dateStr);
+          const li = document.createElement("li");
+          const name = document.createElement("span");
+          name.textContent = habit.name;
+          const status = document.createElement("span");
+          status.className = "status";
+          status.textContent = done ? "✅" : "—";
+          li.appendChild(name);
+          li.appendChild(status);
+          list.appendChild(li);
+        });
+      }
+      document.getElementById("dayModal").style.display = "flex";
+    }
+
     function checkBadges(habit) {
       if (habit.streak > habit.bestStreak) habit.bestStreak = habit.streak;
       BADGE_LEVELS.forEach(function(level) {
@@ -391,6 +421,7 @@
         const cell = document.createElement("div");
         cell.className = "heatmap-cell" + (habit.history.includes(dateStr) ? " l3" : "");
         cell.title = dateStr;
+        cell.addEventListener("click", function() { showDayDetail(dateStr); });
         wrap.appendChild(cell);
       }
       heatmap.appendChild(wrap);
@@ -554,6 +585,7 @@
           const cell = document.createElement("div");
           cell.className = "heatmap-cell " + levelClass(getCompletionCount(dateStr));
           cell.title = dateStr + ": " + getCompletionCount(dateStr) + " habit(s)";
+          cell.addEventListener("click", function() { showDayDetail(dateStr); });
           wrap.appendChild(cell);
         }
         container.appendChild(wrap);
@@ -571,6 +603,7 @@
           const cell = document.createElement("div");
           cell.className = "heatmap-cell " + levelClass(getCompletionCount(dateStr));
           cell.title = dateStr + ": " + getCompletionCount(dateStr) + " habit(s)";
+          cell.addEventListener("click", function() { showDayDetail(dateStr); });
           grid.appendChild(cell);
         }
         scroll.appendChild(grid);
