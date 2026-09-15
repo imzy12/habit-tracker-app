@@ -59,13 +59,30 @@
     .top-bar h2 { font-size: 15px; margin: 0; color: var(--text-muted); font-weight: 500; letter-spacing: 0.3px; }
     .back-btn { border: none; background: none; font-size: 15px; cursor: pointer; color: var(--text); font-family: 'Inter', sans-serif; padding: 4px 0; }
 
-    /* Hero */
-    .hero { text-align: center; padding: 10px 0 28px 0; }
+    .hero { text-align: center; padding: 10px 0 20px 0; }
     .hero .hero-num {
-      font-size: 68px; font-weight: 700; line-height: 1;
+      font-size: 60px; font-weight: 700; line-height: 1;
       background: var(--flame-grad); -webkit-background-clip: text; background-clip: text; color: transparent;
     }
     .hero .hero-label { color: var(--text-muted); font-size: 13px; margin-top: 6px; }
+
+    /* Level card */
+    .level-card {
+      background: var(--surface); border: 1px solid var(--line); border-radius: 16px;
+      padding: 16px 18px; margin-bottom: 24px;
+    }
+    .level-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .level-left { display: flex; align-items: center; gap: 10px; }
+    .level-badge {
+      width: 40px; height: 40px; border-radius: 50%; background: var(--flame-grad);
+      display: flex; align-items: center; justify-content: center; font-weight: 700; color: white;
+      font-family: 'Space Grotesk', sans-serif; font-size: 15px; flex-shrink: 0;
+    }
+    .level-name { font-weight: 600; font-size: 14px; }
+    .level-title { font-size: 11px; color: var(--text-muted); }
+    .level-xp-text { font-size: 11px; color: var(--text-muted); white-space: nowrap; }
+    .level-progress-track { height: 8px; border-radius: 6px; background: var(--surface-2); overflow: hidden; }
+    .level-progress-fill { height: 100%; background: var(--flame-grad); border-radius: 6px; transition: width 0.3s; }
 
     .input-row { display: flex; gap: 8px; margin-bottom: 24px; }
     #habitInput {
@@ -190,7 +207,7 @@
       width: 100%; min-height: 90px; padding: 14px; border-radius: 12px; border: 1px solid var(--line);
       font-family: 'Inter', sans-serif; font-size: 14px; resize: vertical; background: var(--surface); color: var(--text);
     }
-    .section-label { font-size: 13px; margin: 24px 0 10px 0; font-weight: 600; color: var(--text-muted); text-transform: none; }
+    .section-label { font-size: 13px; margin: 24px 0 10px 0; font-weight: 600; color: var(--text-muted); }
   </style>
 </head>
 <body>
@@ -208,6 +225,23 @@
         <div class="hero-num num-font" id="heroStreak">0</div>
         <div class="hero-label">longest active streak</div>
       </div>
+
+      <div class="level-card">
+        <div class="level-top">
+          <div class="level-left">
+            <div class="level-badge" id="levelBadge">1</div>
+            <div>
+              <div class="level-name" id="levelName">Level 1</div>
+              <div class="level-title" id="levelTitle">Beginner</div>
+            </div>
+          </div>
+          <div class="level-xp-text" id="levelXPText">0 / 100 XP</div>
+        </div>
+        <div class="level-progress-track">
+          <div class="level-progress-fill" id="levelProgressFill" style="width:0%"></div>
+        </div>
+      </div>
+
       <div class="input-row">
         <input type="text" id="habitInput" placeholder="Enter a habit">
         <button id="addBtn">Add</button>
@@ -291,6 +325,8 @@
       if (h.notes === undefined) h.notes = "";
     });
 
+    let totalXP = parseInt(localStorage.getItem("totalXP") || "0", 10);
+
     let currentHeatmapRange = "daily";
     let currentDetailIndex = null;
 
@@ -301,6 +337,47 @@
       { days: 30, icon: "🏆", label: "30 Day Champion" },
       { days: 100, icon: "👑", label: "100 Day Legend" }
     ];
+
+    const LEVEL_TITLES = [
+      { max: 2, title: "Beginner" },
+      { max: 5, title: "Getting Consistent" },
+      { max: 10, title: "Habit Builder" },
+      { max: 20, title: "Disciplined" },
+      { max: Infinity, title: "Legend" }
+    ];
+
+    function getLevelTitle(level) {
+      for (const t of LEVEL_TITLES) if (level <= t.max) return t.title;
+      return "Legend";
+    }
+
+    function getLevelInfo(xp) {
+      let level = 1;
+      let cum = 0;
+      while (true) {
+        const needed = level * 100;
+        if (xp < cum + needed) {
+          return { level: level, xpIntoLevel: xp - cum, xpNeeded: needed };
+        }
+        cum += needed;
+        level++;
+      }
+    }
+
+    function addXP(amount) {
+      totalXP += amount;
+      localStorage.setItem("totalXP", String(totalXP));
+      renderLevel();
+    }
+
+    function renderLevel() {
+      const info = getLevelInfo(totalXP);
+      document.getElementById("levelBadge").textContent = info.level;
+      document.getElementById("levelName").textContent = "Level " + info.level;
+      document.getElementById("levelTitle").textContent = getLevelTitle(info.level);
+      document.getElementById("levelXPText").textContent = info.xpIntoLevel + " / " + info.xpNeeded + " XP";
+      document.getElementById("levelProgressFill").style.width = ((info.xpIntoLevel / info.xpNeeded) * 100) + "%";
+    }
 
     function todayString() { return new Date().toISOString().split("T")[0]; }
     function last7Days() {
@@ -356,7 +433,6 @@
       });
     });
 
-    // Theme: dark by default, toggle switches to light
     const themeToggle = document.getElementById("themeToggle");
     if (localStorage.getItem("theme") === "light") document.body.classList.add("light");
     themeToggle.addEventListener("click", function() {
@@ -438,7 +514,8 @@
       BADGE_LEVELS.forEach(function(level) {
         if (habit.streak >= level.days && !habit.badges.includes(level.days)) {
           habit.badges.push(level.days);
-          showCelebration(level.icon, "You unlocked \"" + level.label + "\" for " + habit.name + "!");
+          addXP(50);
+          showCelebration(level.icon, "You unlocked \"" + level.label + "\" for " + habit.name + "! +50 XP");
         }
       });
     }
@@ -542,6 +619,7 @@
       const today = todayString();
 
       document.getElementById("heroStreak").textContent = habits.reduce((max, h) => Math.max(max, h.streak), 0);
+      renderLevel();
 
       habits.forEach(function(habit, index) {
         if (habit.lastDone) {
@@ -571,6 +649,7 @@
           habit.lastDone = today;
           if (!habit.history.includes(today)) habit.history.push(today);
           checkBadges(habit);
+          addXP(10);
           saveAndRender();
         });
 
