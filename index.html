@@ -63,6 +63,42 @@
     body.dark #celebration .box { background: #2c2c2e; color: white; }
     #celebration .icon { font-size: 50px; margin-bottom: 10px; }
     #celebration button { margin-top: 16px; padding: 10px 20px; border: none; background: #4a90e2; color: white; border-radius: 8px; cursor: pointer; }
+
+    /* Heatmap */
+    .heatmap-card { background: white; border-radius: 12px; padding: 14px 16px; margin-bottom: 20px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+    body.dark .heatmap-card { background: #2c2c2e; }
+    .heatmap-tabs { display: flex; gap: 6px; margin-bottom: 12px; }
+    .heatmap-tab {
+      flex: 1; padding: 6px 0; text-align: center; font-size: 12px; border: none;
+      background: #eee; border-radius: 6px; cursor: pointer;
+    }
+    body.dark .heatmap-tab { background: #444; color: #ddd; }
+    .heatmap-tab.active { background: #4a90e2; color: white; }
+    .heatmap-scroll { overflow-x: auto; padding-bottom: 4px; }
+    .heatmap-grid {
+      display: grid;
+      grid-auto-flow: column;
+      grid-template-rows: repeat(7, 12px);
+      gap: 3px;
+      width: max-content;
+    }
+    .heatmap-grid.simple-row {
+      grid-auto-flow: row;
+      grid-template-columns: repeat(10, 1fr);
+      grid-template-rows: none;
+      width: 100%;
+    }
+    .heatmap-cell {
+      width: 12px; height: 12px; border-radius: 3px; background: #e0e0e0;
+    }
+    body.dark .heatmap-cell { background: #444; }
+    .heatmap-cell.l1 { background: #b7e4c7; }
+    .heatmap-cell.l2 { background: #6fcf97; }
+    .heatmap-cell.l3 { background: #219653; }
+    .heatmap-bars { display: flex; align-items: flex-end; gap: 6px; height: 90px; }
+    .heatmap-bar-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; }
+    .heatmap-bar { width: 100%; background: #4a90e2; border-radius: 3px 3px 0 0; min-height: 2px; }
+    .heatmap-bar-label { font-size: 9px; margin-top: 4px; color: #888; }
   </style>
 </head>
 <body>
@@ -87,6 +123,17 @@
 
     <div class="page" id="page-stats">
       <div class="top-bar"><h2>📊 Stats</h2></div>
+
+      <div class="heatmap-card">
+        <div class="heatmap-tabs">
+          <button class="heatmap-tab active" data-range="daily">Daily</button>
+          <button class="heatmap-tab" data-range="weekly">Weekly</button>
+          <button class="heatmap-tab" data-range="monthly">Monthly</button>
+          <button class="heatmap-tab" data-range="yearly">Yearly</button>
+        </div>
+        <div id="heatmapContainer"></div>
+      </div>
+
       <h3 style="font-size:14px; margin-bottom:8px;">Achievements</h3>
       <div class="badge-grid" id="badgeGrid"></div>
       <h3 style="font-size:14px; margin-bottom:8px;">This Week</h3>
@@ -118,6 +165,8 @@
   <script>
     let habits = JSON.parse(localStorage.getItem("habits")) || [];
     habits.forEach(h => { if (!h.history) h.history = []; if (!h.badges) h.badges = []; });
+
+    let currentHeatmapRange = "daily";
 
     const BADGE_LEVELS = [
       { days: 3, icon: "🔥", label: "3 Day Spark" },
@@ -157,7 +206,16 @@
         document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
         btn.classList.add("active");
         document.getElementById("page-" + btn.dataset.page).classList.add("active");
-        if (btn.dataset.page === "stats") { renderStats(); renderBadges(); }
+        if (btn.dataset.page === "stats") { renderStats(); renderBadges(); renderHeatmap(); }
+      });
+    });
+
+    document.querySelectorAll(".heatmap-tab").forEach(function(tab) {
+      tab.addEventListener("click", function() {
+        document.querySelectorAll(".heatmap-tab").forEach(t => t.classList.remove("active"));
+        tab.classList.add("active");
+        currentHeatmapRange = tab.dataset.range;
+        renderHeatmap();
       });
     });
 
@@ -228,36 +286,25 @@
       canvas.width = 600;
       canvas.height = 600;
       const ctx = canvas.getContext("2d");
-
       const gradient = ctx.createLinearGradient(0, 0, 600, 600);
       gradient.addColorStop(0, "#4a90e2");
       gradient.addColorStop(1, "#357abd");
       ctx.fillStyle = gradient;
       ctx.fillRect(0, 0, 600, 600);
-
       ctx.fillStyle = "white";
       ctx.textAlign = "center";
-
       ctx.font = "60px sans-serif";
       ctx.fillText("🔥", 300, 220);
-
       ctx.font = "bold 48px sans-serif";
       ctx.fillText(habit.streak + " Day Streak", 300, 300);
-
       ctx.font = "26px sans-serif";
       ctx.fillText(habit.name, 300, 350);
-
       ctx.font = "18px sans-serif";
       ctx.fillText("Built with Habit Tracker", 300, 550);
-
       canvas.toBlob(function(blob) {
         const file = new File([blob], "streak.png", { type: "image/png" });
         if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-          navigator.share({
-            files: [file],
-            title: "My Habit Streak",
-            text: habit.name + " — " + habit.streak + " day streak! 🔥"
-          });
+          navigator.share({ files: [file], title: "My Habit Streak", text: habit.name + " — " + habit.streak + " day streak! 🔥" });
         } else {
           const link = document.createElement("a");
           link.download = "streak.png";
@@ -303,9 +350,7 @@
         shareBtn.textContent = "📤";
         shareBtn.className = "doneBtn";
         shareBtn.style.background = "#8e44ad";
-        shareBtn.addEventListener("click", function() {
-          shareStreak(habit);
-        });
+        shareBtn.addEventListener("click", function() { shareStreak(habit); });
 
         const deleteBtn = document.createElement("button");
         deleteBtn.textContent = "Delete";
@@ -369,6 +414,130 @@
         div.innerHTML = "<span class='icon'>" + level.icon + "</span><span class='label'>" + level.label + "</span>";
         grid.appendChild(div);
       });
+    }
+
+    // ---- Heatmap logic ----
+    function getCompletionCount(dateStr) {
+      let count = 0;
+      habits.forEach(h => { if (h.history.includes(dateStr)) count++; });
+      return count;
+    }
+
+    function levelClass(count) {
+      if (count === 0) return "";
+      if (count === 1) return "l1";
+      if (count === 2) return "l2";
+      return "l3";
+    }
+
+    function renderHeatmap() {
+      const container = document.getElementById("heatmapContainer");
+      container.innerHTML = "";
+
+      if (habits.length === 0) {
+        container.innerHTML = "<p class='empty' style='margin:0;'>Add habits to see your activity here.</p>";
+        return;
+      }
+
+      if (currentHeatmapRange === "daily") {
+        // Last 30 days, simple grid
+        const wrap = document.createElement("div");
+        wrap.className = "heatmap-grid simple-row";
+        for (let i = 29; i >= 0; i--) {
+          const d = new Date();
+          d.setDate(d.getDate() - i);
+          const dateStr = d.toISOString().split("T")[0];
+          const cell = document.createElement("div");
+          cell.className = "heatmap-cell " + levelClass(getCompletionCount(dateStr));
+          cell.title = dateStr + ": " + getCompletionCount(dateStr) + " habit(s)";
+          wrap.appendChild(cell);
+        }
+        container.appendChild(wrap);
+
+      } else if (currentHeatmapRange === "yearly") {
+        // Last 371 days, GitHub-style columns of 7
+        const scroll = document.createElement("div");
+        scroll.className = "heatmap-scroll";
+        const grid = document.createElement("div");
+        grid.className = "heatmap-grid";
+        const totalDays = 371;
+        for (let i = totalDays - 1; i >= 0; i--) {
+          const d = new Date();
+          d.setDate(d.getDate() - i);
+          const dateStr = d.toISOString().split("T")[0];
+          const cell = document.createElement("div");
+          cell.className = "heatmap-cell " + levelClass(getCompletionCount(dateStr));
+          cell.title = dateStr + ": " + getCompletionCount(dateStr) + " habit(s)";
+          grid.appendChild(cell);
+        }
+        scroll.appendChild(grid);
+        container.appendChild(scroll);
+
+      } else if (currentHeatmapRange === "weekly") {
+        // Last 12 weeks, bar per week = total completions
+        const bars = document.createElement("div");
+        bars.className = "heatmap-bars";
+        const weekTotals = [];
+        for (let w = 11; w >= 0; w--) {
+          let total = 0;
+          for (let d = 0; d < 7; d++) {
+            const day = new Date();
+            day.setDate(day.getDate() - (w * 7 + d));
+            total += getCompletionCount(day.toISOString().split("T")[0]);
+          }
+          weekTotals.push(total);
+        }
+        const max = Math.max(1, ...weekTotals);
+        weekTotals.forEach(function(total, i) {
+          const wrap = document.createElement("div");
+          wrap.className = "heatmap-bar-wrap";
+          const bar = document.createElement("div");
+          bar.className = "heatmap-bar";
+          bar.style.height = Math.max(4, (total / max) * 80) + "px";
+          bar.title = total + " completions";
+          const label = document.createElement("div");
+          label.className = "heatmap-bar-label";
+          label.textContent = "W" + (i + 1);
+          wrap.appendChild(bar);
+          wrap.appendChild(label);
+          bars.appendChild(wrap);
+        });
+        container.appendChild(bars);
+
+      } else if (currentHeatmapRange === "monthly") {
+        // Last 12 months, bar per month
+        const bars = document.createElement("div");
+        bars.className = "heatmap-bars";
+        const monthTotals = [];
+        const monthLabels = [];
+        const now = new Date();
+        for (let m = 11; m >= 0; m--) {
+          const monthDate = new Date(now.getFullYear(), now.getMonth() - m, 1);
+          const nextMonthDate = new Date(now.getFullYear(), now.getMonth() - m + 1, 1);
+          let total = 0;
+          for (let d = new Date(monthDate); d < nextMonthDate; d.setDate(d.getDate() + 1)) {
+            total += getCompletionCount(d.toISOString().split("T")[0]);
+          }
+          monthTotals.push(total);
+          monthLabels.push(monthDate.toLocaleString('default', { month: 'short' }));
+        }
+        const max = Math.max(1, ...monthTotals);
+        monthTotals.forEach(function(total, i) {
+          const wrap = document.createElement("div");
+          wrap.className = "heatmap-bar-wrap";
+          const bar = document.createElement("div");
+          bar.className = "heatmap-bar";
+          bar.style.height = Math.max(4, (total / max) * 80) + "px";
+          bar.title = total + " completions";
+          const label = document.createElement("div");
+          label.className = "heatmap-bar-label";
+          label.textContent = monthLabels[i];
+          wrap.appendChild(bar);
+          wrap.appendChild(label);
+          bars.appendChild(wrap);
+        });
+        container.appendChild(bars);
+      }
     }
 
     renderHabits();
