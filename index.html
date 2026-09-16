@@ -84,17 +84,12 @@
     .level-progress-track { height: 8px; border-radius: 6px; background: var(--surface-2); overflow: hidden; }
     .level-progress-fill { height: 100%; background: var(--flame-grad); border-radius: 6px; transition: width 0.3s; }
 
-    .input-row { display: flex; gap: 8px; margin-bottom: 24px; }
-    #habitInput {
-      flex: 1; padding: 13px 16px; border: 1px solid var(--line); border-radius: 12px;
-      font-size: 15px; background: var(--surface); color: var(--text); font-family: 'Inter', sans-serif;
+    .add-habit-btn {
+      width: 100%; padding: 14px 16px; border: 1px dashed var(--line); border-radius: 12px;
+      font-size: 15px; font-weight: 600; cursor: pointer; font-family: 'Inter', sans-serif;
+      background: var(--surface); color: var(--text); margin-bottom: 24px;
     }
-    #habitInput::placeholder { color: var(--text-muted); }
-    #addBtn {
-      padding: 13px 20px; border: none; background: var(--flame-grad); color: white;
-      border-radius: 12px; font-size: 15px; font-weight: 600; cursor: pointer; font-family: 'Inter', sans-serif;
-    }
-    #addBtn:active { transform: scale(0.96); }
+    .add-habit-btn:active { transform: scale(0.98); }
 
     #habitList { list-style: none; padding: 0; margin: 0; border-top: 1px solid var(--line); }
     #habitList li {
@@ -109,6 +104,8 @@
     .habit-name { font-weight: 500; }
     .habit-streak { color: var(--text-muted); font-size: 13px; margin-left: 6px; font-family: 'Space Grotesk', sans-serif; }
     .habit-actions { display: flex; gap: 4px; align-items: center; }
+    .habit-meta { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-muted); margin-top: 8px; }
+    .meta-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
 
     .icon-btn {
       border: none; background: none; cursor: pointer; font-size: 15px; padding: 8px;
@@ -141,6 +138,11 @@
       background: var(--surface); color: var(--text); font-family: 'Inter', sans-serif;
     }
     #themeToggle { border: none; background: var(--flame-grad); color: white; cursor: pointer; font-weight: 600; }
+    .import-label {
+      padding: 7px 12px; border-radius: 8px; border: 1px solid var(--line); font-size: 13px;
+      background: var(--surface); color: var(--text); font-family: 'Inter', sans-serif; cursor: pointer; display: inline-block;
+    }
+    .import-label:active { background: var(--surface-2); }
 
     .bottom-nav {
       position: fixed; bottom: 0; left: 0; right: 0; background: var(--bg);
@@ -162,8 +164,8 @@
     .badge .icon { font-size: 24px; display: block; margin-bottom: 4px; }
     .badge .label { font-size: 10px; color: var(--text-muted); }
 
-    #celebration, #dayModal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); align-items: center; justify-content: center; z-index: 100; }
-    #celebration .box, #dayModal .box { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 26px; text-align: center; max-width: 300px; width: 85%; }
+    #celebration, #dayModal, #habitModal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); align-items: center; justify-content: center; z-index: 100; padding: 20px; }
+    #celebration .box, #dayModal .box, #habitModal .box { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 26px; text-align: center; max-width: 300px; width: 85%; }
     #celebration .icon { font-size: 46px; margin-bottom: 10px; }
     #celebration button, #dayModal button {
       margin-top: 16px; padding: 10px 22px; border: none; background: var(--flame-grad); color: white;
@@ -172,6 +174,35 @@
     .day-modal-list { list-style: none; padding: 0; margin: 14px 0; text-align: left; }
     .day-modal-list li { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 14px; background: none; }
     .day-modal-list .status { font-size: 15px; }
+
+    /* Add/Edit habit modal */
+    #habitModal .box { text-align: left; max-width: 340px; max-height: 85vh; overflow-y: auto; }
+    #habitModal .modal-title { font-weight: 600; font-size: 16px; margin-bottom: 4px; }
+    .modal-label { display: block; font-size: 12px; color: var(--text-muted); margin: 16px 0 6px 0; font-weight: 600; }
+    .modal-input {
+      width: 100%; padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px;
+      background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; font-size: 14px;
+    }
+    .color-grid { display: flex; gap: 8px; flex-wrap: wrap; }
+    .color-swatch { width: 32px; height: 32px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; padding: 0; }
+    .color-swatch.selected { border-color: var(--text); }
+    .freq-options { display: flex; flex-direction: column; gap: 10px; }
+    .freq-radio { display: flex; align-items: center; gap: 8px; font-size: 14px; cursor: pointer; }
+    .day-picker-row { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
+    .day-toggle {
+      width: 34px; height: 34px; border-radius: 8px; border: 1px solid var(--line);
+      background: var(--surface-2); color: var(--text-muted); font-size: 12px; cursor: pointer; font-family: 'Inter', sans-serif;
+    }
+    .day-toggle.selected { background: var(--flame-grad); color: white; border-color: transparent; }
+    .modal-actions { display: flex; gap: 10px; margin-top: 22px; }
+    .modal-btn-secondary {
+      flex: 1; padding: 12px; border-radius: 10px; border: 1px solid var(--line); background: none;
+      color: var(--text); cursor: pointer; font-family: 'Inter', sans-serif; font-weight: 600; font-size: 14px;
+    }
+    .modal-btn-primary {
+      flex: 1; padding: 12px; border-radius: 10px; border: none; background: var(--flame-grad);
+      color: white; cursor: pointer; font-family: 'Inter', sans-serif; font-weight: 600; font-size: 14px;
+    }
 
     .heatmap-card { background: var(--surface); border-radius: 14px; padding: 16px; margin-bottom: 20px; border: 1px solid var(--line); }
     .heatmap-tabs { display: flex; gap: 6px; margin-bottom: 14px; }
@@ -242,10 +273,7 @@
         </div>
       </div>
 
-      <div class="input-row">
-        <input type="text" id="habitInput" placeholder="Enter a habit">
-        <button id="addBtn">Add</button>
-      </div>
+      <button id="addBtn" class="add-habit-btn">+ Add Habit</button>
       <ul id="habitList"></ul>
       <p class="empty" id="emptyMsg">No habits yet — add one to get started.</p>
     </div>
@@ -291,6 +319,12 @@
       <div class="setting-row"><span>Light mode</span><button id="themeToggle">Toggle</button></div>
       <div class="setting-row"><span>Daily reminder</span><input type="time" id="reminderTime"></div>
       <div class="setting-row"><span>Enable notifications</span><button id="enableNotif">Enable</button></div>
+      <div class="setting-row"><span>Backup your data</span><button id="exportBtn">Export</button></div>
+      <div class="setting-row">
+        <span>Restore from file</span>
+        <label class="import-label" for="importFile">Import</label>
+        <input type="file" id="importFile" accept="application/json" style="display:none;">
+      </div>
     </div>
 
     <nav class="bottom-nav">
@@ -316,19 +350,76 @@
     </div>
   </div>
 
+  <div id="habitModal">
+    <div class="box">
+      <div class="modal-title" id="habitModalTitle">Add Habit</div>
+
+      <label class="modal-label" for="modalHabitName">Name</label>
+      <input type="text" id="modalHabitName" class="modal-input" placeholder="e.g. Drink water">
+
+      <label class="modal-label" for="modalCategory">Category</label>
+      <select id="modalCategory" class="modal-input"></select>
+
+      <label class="modal-label">Color</label>
+      <div id="modalColorGrid" class="color-grid"></div>
+
+      <label class="modal-label">Frequency</label>
+      <div class="freq-options">
+        <label class="freq-radio"><input type="radio" name="freqType" value="daily" checked> Every day</label>
+        <label class="freq-radio"><input type="radio" name="freqType" value="custom"> Specific days</label>
+      </div>
+      <div id="dayPickerRow" class="day-picker-row"></div>
+
+      <label class="modal-label">Goal type</label>
+      <div class="freq-options">
+        <label class="freq-radio"><input type="radio" name="goalType" value="check" checked> Simple check-off</label>
+        <label class="freq-radio"><input type="radio" name="goalType" value="quantity"> Hit a daily number</label>
+      </div>
+      <div id="quantityRow" style="display:none; margin-top:10px;">
+        <input type="number" id="modalTargetQty" class="modal-input" placeholder="Target (e.g. 8)" min="1">
+        <input type="text" id="modalUnit" class="modal-input" placeholder="Unit (e.g. glasses)" style="margin-top:8px;">
+      </div>
+
+      <div class="modal-actions">
+        <button id="modalCancelBtn" class="modal-btn-secondary">Cancel</button>
+        <button id="modalSaveBtn" class="modal-btn-primary">Save</button>
+      </div>
+    </div>
+  </div>
+
   <script>
+    const CATEGORIES = [
+      { id: "health", label: "Health", icon: "💊" },
+      { id: "fitness", label: "Fitness", icon: "🏋️" },
+      { id: "mindfulness", label: "Mindfulness", icon: "🧘" },
+      { id: "learning", label: "Learning", icon: "📚" },
+      { id: "work", label: "Work", icon: "💼" },
+      { id: "creative", label: "Creative", icon: "🎨" },
+      { id: "social", label: "Social", icon: "👥" },
+      { id: "other", label: "Other", icon: "✨" }
+    ];
+    const HABIT_COLORS = ["#FF7A45", "#E63946", "#FFC857", "#4ECDC4", "#6C5CE7", "#2ECC71", "#3498DB", "#FF6FA5"];
+    const DAY_NAMES_SHORT = ["S", "M", "T", "W", "T", "F", "S"];
+    const DAY_NAMES_FULL = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
     let habits = JSON.parse(localStorage.getItem("habits")) || [];
     habits.forEach(h => {
       if (!h.history) h.history = [];
       if (!h.badges) h.badges = [];
       if (h.bestStreak === undefined) h.bestStreak = h.streak || 0;
       if (h.notes === undefined) h.notes = "";
+      if (!h.category) h.category = "other";
+      if (!h.color) h.color = HABIT_COLORS[0];
+      if (!h.frequency) h.frequency = { type: "daily" };
+      if (!h.goalType) h.goalType = "check";
+      if (!h.dailyProgress) h.dailyProgress = {};
     });
 
     let totalXP = parseInt(localStorage.getItem("totalXP") || "0", 10);
 
     let currentHeatmapRange = "daily";
     let currentDetailIndex = null;
+    let editingIndex = null;
 
     const BADGE_LEVELS = [
       { days: 3, icon: "🔥", label: "3 Day Spark" },
@@ -389,7 +480,7 @@
       }
       return days;
     }
-    const dayLabels = ["S","M","T","W","T","F","S"];
+    const dayLabels = DAY_NAMES_SHORT;
 
     function showPage(pageId) {
       document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
@@ -465,14 +556,258 @@
       }
     }, 30000);
 
-    document.getElementById("addBtn").addEventListener("click", function() {
-      const input = document.getElementById("habitInput");
-      const name = input.value.trim();
-      if (name !== "") {
-        habits.push({ name: name, streak: 0, lastDone: null, history: [], badges: [], bestStreak: 0, notes: "" });
-        input.value = "";
+    /* ---------- Backup / restore ---------- */
+
+    document.getElementById("exportBtn").addEventListener("click", function() {
+      const data = {
+        exportedAt: new Date().toISOString(),
+        habits: habits,
+        totalXP: totalXP,
+        theme: localStorage.getItem("theme") || "dark",
+        reminderTime: localStorage.getItem("reminderTime") || ""
+      };
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "habit-tracker-backup-" + todayString() + ".json";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    });
+
+    document.getElementById("importFile").addEventListener("change", function(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function() {
+        let data;
+        try {
+          data = JSON.parse(reader.result);
+        } catch (err) {
+          alert("That file isn't valid JSON.");
+          e.target.value = "";
+          return;
+        }
+        if (!data || !Array.isArray(data.habits)) {
+          alert("This doesn't look like a Habit Tracker backup file.");
+          e.target.value = "";
+          return;
+        }
+        const confirmed = confirm("This will replace your current habits and XP with the backup. Continue?");
+        if (!confirmed) { e.target.value = ""; return; }
+
+        habits = data.habits;
+        habits.forEach(h => {
+          if (!h.history) h.history = [];
+          if (!h.badges) h.badges = [];
+          if (h.bestStreak === undefined) h.bestStreak = h.streak || 0;
+          if (h.notes === undefined) h.notes = "";
+          if (!h.category) h.category = "other";
+          if (!h.color) h.color = HABIT_COLORS[0];
+          if (!h.frequency) h.frequency = { type: "daily" };
+          if (!h.goalType) h.goalType = "check";
+          if (!h.dailyProgress) h.dailyProgress = {};
+        });
+        totalXP = typeof data.totalXP === "number" ? data.totalXP : 0;
+        localStorage.setItem("totalXP", String(totalXP));
+
+        if (data.theme === "light") {
+          document.body.classList.add("light");
+          localStorage.setItem("theme", "light");
+        } else {
+          document.body.classList.remove("light");
+          localStorage.setItem("theme", "dark");
+        }
+        if (data.reminderTime) {
+          localStorage.setItem("reminderTime", data.reminderTime);
+          document.getElementById("reminderTime").value = data.reminderTime;
+        }
+
         saveAndRender();
+        renderLevel();
+        alert("Backup restored!");
+        e.target.value = "";
+      };
+      reader.readAsText(file);
+    });
+
+    /* ---------- Category / frequency helpers ---------- */
+
+    function categoryInfo(id) {
+      return CATEGORIES.find(c => c.id === id) || CATEGORIES[CATEGORIES.length - 1];
+    }
+
+    function frequencyLabel(habit) {
+      if (!habit.frequency || habit.frequency.type === "daily") return "Daily";
+      const days = (habit.frequency.days || []).slice().sort();
+      if (days.length === 0 || days.length === 7) return "Daily";
+      return days.map(d => DAY_NAMES_FULL[d]).join(", ");
+    }
+
+    function isScheduledDay(habit, dateStr) {
+      if (!habit.frequency || habit.frequency.type === "daily") return true;
+      const days = habit.frequency.days || [];
+      if (days.length === 0) return true;
+      const day = new Date(dateStr).getDay();
+      return days.includes(day);
+    }
+
+    function hasMissedScheduledDay(habit, fromDateStr, toDateStr) {
+      const d = new Date(fromDateStr);
+      d.setDate(d.getDate() + 1);
+      const end = new Date(toDateStr);
+      while (d < end) {
+        const ds = d.toISOString().split("T")[0];
+        if (isScheduledDay(habit, ds) && !habit.history.includes(ds)) return true;
+        d.setDate(d.getDate() + 1);
       }
+      return false;
+    }
+
+    /* ---------- Add/Edit habit modal ---------- */
+
+    function buildCategorySelect() {
+      const select = document.getElementById("modalCategory");
+      select.innerHTML = "";
+      CATEGORIES.forEach(function(cat) {
+        const opt = document.createElement("option");
+        opt.value = cat.id;
+        opt.textContent = cat.icon + " " + cat.label;
+        select.appendChild(opt);
+      });
+    }
+
+    function buildDayPicker() {
+      const row = document.getElementById("dayPickerRow");
+      row.innerHTML = "";
+      DAY_NAMES_SHORT.forEach(function(label, i) {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "day-toggle";
+        btn.dataset.day = i;
+        btn.textContent = label;
+        btn.addEventListener("click", function() { btn.classList.toggle("selected"); });
+        row.appendChild(btn);
+      });
+    }
+
+    function renderColorGrid(selectedColor) {
+      const grid = document.getElementById("modalColorGrid");
+      grid.innerHTML = "";
+      HABIT_COLORS.forEach(function(color) {
+        const swatch = document.createElement("button");
+        swatch.type = "button";
+        swatch.className = "color-swatch" + (color === selectedColor ? " selected" : "");
+        swatch.style.background = color;
+        swatch.dataset.color = color;
+        swatch.addEventListener("click", function() {
+          document.querySelectorAll(".color-swatch").forEach(s => s.classList.remove("selected"));
+          swatch.classList.add("selected");
+        });
+        grid.appendChild(swatch);
+      });
+    }
+
+    function toggleDayPickerVisibility() {
+      const type = document.querySelector('input[name="freqType"]:checked').value;
+      document.getElementById("dayPickerRow").style.display = type === "custom" ? "flex" : "none";
+    }
+
+    function toggleQuantityRowVisibility() {
+      const type = document.querySelector('input[name="goalType"]:checked').value;
+      document.getElementById("quantityRow").style.display = type === "quantity" ? "block" : "none";
+    }
+
+    function getProgress(habit, dateStr) {
+      return (habit.dailyProgress && habit.dailyProgress[dateStr]) || 0;
+    }
+
+    function openHabitModal(index) {
+      editingIndex = index;
+      const isEdit = index !== null && index !== undefined;
+      const habit = isEdit ? habits[index] : null;
+
+      document.getElementById("habitModalTitle").textContent = isEdit ? "Edit Habit" : "Add Habit";
+      document.getElementById("modalHabitName").value = habit ? habit.name : "";
+      document.getElementById("modalCategory").value = habit ? habit.category : "other";
+      renderColorGrid(habit ? habit.color : HABIT_COLORS[0]);
+
+      const freqType = habit && habit.frequency ? habit.frequency.type : "daily";
+      document.querySelector('input[name="freqType"][value="' + freqType + '"]').checked = true;
+      const selectedDays = habit && habit.frequency && habit.frequency.days ? habit.frequency.days : [];
+      document.querySelectorAll(".day-toggle").forEach(function(btn) {
+        btn.classList.toggle("selected", selectedDays.includes(parseInt(btn.dataset.day, 10)));
+      });
+      toggleDayPickerVisibility();
+
+      const goalType = habit ? (habit.goalType || "check") : "check";
+      document.querySelector('input[name="goalType"][value="' + goalType + '"]').checked = true;
+      document.getElementById("modalTargetQty").value = habit && habit.targetQty ? habit.targetQty : "";
+      document.getElementById("modalUnit").value = habit && habit.unit ? habit.unit : "";
+      toggleQuantityRowVisibility();
+
+      document.getElementById("habitModal").style.display = "flex";
+      document.getElementById("modalHabitName").focus();
+    }
+
+    function closeHabitModal() {
+      document.getElementById("habitModal").style.display = "none";
+      editingIndex = null;
+    }
+
+    document.querySelectorAll('input[name="freqType"]').forEach(function(r) {
+      r.addEventListener("change", toggleDayPickerVisibility);
+    });
+    document.querySelectorAll('input[name="goalType"]').forEach(function(r) {
+      r.addEventListener("change", toggleQuantityRowVisibility);
+    });
+
+    document.getElementById("addBtn").addEventListener("click", function() { openHabitModal(null); });
+    document.getElementById("modalCancelBtn").addEventListener("click", closeHabitModal);
+
+    document.getElementById("modalSaveBtn").addEventListener("click", function() {
+      const nameInput = document.getElementById("modalHabitName");
+      const name = nameInput.value.trim();
+      if (name === "") { nameInput.focus(); return; }
+
+      const category = document.getElementById("modalCategory").value;
+      const selectedSwatch = document.querySelector(".color-swatch.selected");
+      const color = selectedSwatch ? selectedSwatch.dataset.color : HABIT_COLORS[0];
+      const freqType = document.querySelector('input[name="freqType"]:checked').value;
+
+      let frequency;
+      if (freqType === "custom") {
+        const days = Array.from(document.querySelectorAll(".day-toggle.selected")).map(b => parseInt(b.dataset.day, 10));
+        frequency = { type: "custom", days: days.length ? days : [0,1,2,3,4,5,6] };
+      } else {
+        frequency = { type: "daily" };
+      }
+
+      const goalType = document.querySelector('input[name="goalType"]:checked').value;
+      const targetQty = Math.max(1, parseInt(document.getElementById("modalTargetQty").value, 10) || 1);
+      const unit = document.getElementById("modalUnit").value.trim();
+
+      if (editingIndex !== null) {
+        const habit = habits[editingIndex];
+        habit.name = name;
+        habit.category = category;
+        habit.color = color;
+        habit.frequency = frequency;
+        habit.goalType = goalType;
+        if (goalType === "quantity") { habit.targetQty = targetQty; habit.unit = unit; }
+      } else {
+        habits.push({
+          name: name, category: category, color: color, frequency: frequency,
+          goalType: goalType, targetQty: goalType === "quantity" ? targetQty : undefined,
+          unit: goalType === "quantity" ? unit : "", dailyProgress: {},
+          streak: 0, lastDone: null, history: [], badges: [], bestStreak: 0, notes: ""
+        });
+      }
+
+      closeHabitModal();
+      saveAndRender();
     });
 
     function saveAndRender() {
@@ -623,8 +958,12 @@
 
       habits.forEach(function(habit, index) {
         if (habit.lastDone) {
-          const diff = Math.floor((new Date(today) - new Date(habit.lastDone)) / 86400000);
-          if (diff > 1) habit.streak = 0;
+          if (habit.frequency && habit.frequency.type === "custom") {
+            if (hasMissedScheduledDay(habit, habit.lastDone, today)) habit.streak = 0;
+          } else {
+            const diff = Math.floor((new Date(today) - new Date(habit.lastDone)) / 86400000);
+            if (diff > 1) habit.streak = 0;
+          }
         }
         const li = document.createElement("li");
         li.className = streakTier(habit.streak);
@@ -640,29 +979,47 @@
         const actions = document.createElement("div");
         actions.className = "habit-actions";
 
+        const scheduledToday = isScheduledDay(habit, today);
         const doneBtn = document.createElement("button");
-        doneBtn.textContent = habit.lastDone === today ? "Done" : "Done today";
         doneBtn.className = "primaryBtn";
-        doneBtn.disabled = habit.lastDone === today;
-        doneBtn.addEventListener("click", function() {
-          habit.streak++;
-          habit.lastDone = today;
-          if (!habit.history.includes(today)) habit.history.push(today);
-          checkBadges(habit);
-          addXP(10);
-          saveAndRender();
-        });
+
+        if (habit.goalType === "quantity") {
+          const progress = getProgress(habit, today);
+          const complete = habit.lastDone === today;
+          const unitSuffix = habit.unit ? (" " + habit.unit) : "";
+          doneBtn.textContent = complete
+            ? "Done (" + progress + "/" + habit.targetQty + unitSuffix + ")"
+            : (scheduledToday ? "+1 (" + progress + "/" + habit.targetQty + ")" : "Rest day");
+          doneBtn.disabled = complete || !scheduledToday;
+          doneBtn.addEventListener("click", function() {
+            if (!habit.dailyProgress) habit.dailyProgress = {};
+            habit.dailyProgress[today] = (habit.dailyProgress[today] || 0) + 1;
+            if (habit.dailyProgress[today] >= habit.targetQty) {
+              habit.streak++;
+              habit.lastDone = today;
+              if (!habit.history.includes(today)) habit.history.push(today);
+              checkBadges(habit);
+              addXP(10);
+            }
+            saveAndRender();
+          });
+        } else {
+          doneBtn.textContent = habit.lastDone === today ? "Done" : (scheduledToday ? "Done today" : "Rest day");
+          doneBtn.disabled = habit.lastDone === today || !scheduledToday;
+          doneBtn.addEventListener("click", function() {
+            habit.streak++;
+            habit.lastDone = today;
+            if (!habit.history.includes(today)) habit.history.push(today);
+            checkBadges(habit);
+            addXP(10);
+            saveAndRender();
+          });
+        }
 
         const editBtn = document.createElement("button");
         editBtn.textContent = "✏️";
         editBtn.className = "icon-btn";
-        editBtn.addEventListener("click", function() {
-          const newName = prompt("Rename habit:", habit.name);
-          if (newName !== null && newName.trim() !== "") {
-            habit.name = newName.trim();
-            saveAndRender();
-          }
-        });
+        editBtn.addEventListener("click", function() { openHabitModal(index); });
 
         const shareBtn = document.createElement("button");
         shareBtn.textContent = "📤";
@@ -684,6 +1041,14 @@
         top.appendChild(text);
         top.appendChild(actions);
         li.appendChild(top);
+
+        const cat = categoryInfo(habit.category);
+        const meta = document.createElement("div");
+        meta.className = "habit-meta";
+        meta.innerHTML = "<span class='meta-dot' style='background:" + habit.color + "'></span>" +
+          "<span>" + cat.icon + " " + cat.label + " · " + frequencyLabel(habit) + "</span>";
+        li.appendChild(meta);
+
         list.appendChild(li);
       });
       localStorage.setItem("habits", JSON.stringify(habits));
@@ -853,6 +1218,8 @@
       }
     }
 
+    buildCategorySelect();
+    buildDayPicker();
     renderHabits();
   </script>
 </body>
