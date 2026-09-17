@@ -6,6 +6,9 @@
   <title>Habit Tracker</title>
   <link rel="manifest" href="manifest.json">
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <!-- Needed for the Leagues feature (free Firebase Firestore) — see FIREBASE_CONFIG near the top of the <script> below -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <style>
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
@@ -143,6 +146,14 @@
       background: var(--surface); color: var(--text); font-family: 'Inter', sans-serif; cursor: pointer; display: inline-block;
     }
     .import-label:active { background: var(--surface-2); }
+
+    .leader-row { display: flex; align-items: center; gap: 10px; padding: 12px 4px; border-bottom: 1px solid var(--line); font-size: 14px; color: var(--text); }
+    .leader-row.me { background: var(--surface-2); border-radius: 8px; }
+    .rank-num { width: 22px; font-weight: 700; color: var(--text-muted); font-family: 'Space Grotesk', sans-serif; }
+    .leader-name { flex: 1; }
+    .leader-streak { color: var(--flame-1); font-weight: 600; font-family: 'Space Grotesk', sans-serif; }
+    .league-card { display: flex; justify-content: space-between; align-items: center; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px; margin-bottom: 8px; cursor: pointer; color: var(--text); font-size: 14px; }
+    .league-code { color: var(--text-muted); font-family: 'Space Grotesk', sans-serif; font-size: 12px; }
 
     .bottom-nav {
       position: fixed; bottom: 0; left: 0; right: 0; background: var(--bg);
@@ -314,6 +325,26 @@
       <div id="statsList"></div>
     </div>
 
+    <div class="page" id="page-leagues">
+      <div class="top-bar"><h2>Leagues</h2></div>
+      <div class="setting-row"><span>Show me on public leaderboard</span><button id="togglePublicBtn">Off</button></div>
+      <div class="section-label">Global Leaderboard</div>
+      <div id="publicLeaderboard"></div>
+      <div id="myLeaguesSection">
+        <div class="section-label">Your Leagues</div>
+        <div class="input-row" style="margin-bottom:10px;">
+          <button id="createLeagueBtn" class="primaryBtn" style="flex:1;padding:12px;">+ Create League</button>
+          <button id="joinLeagueBtn" class="primaryBtn" style="flex:1;padding:12px;">Join League</button>
+        </div>
+        <div id="myLeaguesList"></div>
+      </div>
+      <div id="leagueDetailView" style="display:none;margin-top:10px;">
+        <button class="back-btn" id="leagueBackBtn">← Back to leagues</button>
+        <div class="section-label" id="leagueDetailName"></div>
+        <div id="leagueLeaderboard"></div>
+      </div>
+    </div>
+
     <div class="page" id="page-settings">
       <div class="top-bar"><h2>Settings</h2></div>
       <div class="setting-row"><span>Light mode</span><button id="themeToggle">Toggle</button></div>
@@ -330,6 +361,7 @@
     <nav class="bottom-nav">
       <button class="nav-btn active" data-page="home"><span class="icon">🏠</span>Home</button>
       <button class="nav-btn" data-page="stats"><span class="icon">📊</span>Stats</button>
+      <button class="nav-btn" data-page="leagues"><span class="icon">🏆</span>Leagues</button>
       <button class="nav-btn" data-page="settings"><span class="icon">⚙️</span>Settings</button>
     </nav>
   </div>
@@ -505,6 +537,7 @@
         btn.classList.add("active");
         showPage("page-" + btn.dataset.page);
         if (btn.dataset.page === "stats") { renderStats(); renderBadges(); renderHeatmap(); }
+        if (btn.dataset.page === "leagues") { closeLeagueDetail(); syncPlayerDoc().then(renderPublicLeaderboard); renderMyLeagues(); }
       });
     });
 
@@ -632,6 +665,241 @@
       };
       reader.readAsText(file);
     });
+
+    /* ---------- Leagues (private leagues + public leaderboard) ---------- */
+    /*
+      Needs a free Firebase project, because comparing streaks between
+      friends means the data has to live somewhere other than each
+      person's own browser. Setup (~5 min, free):
+
+      1. https://console.firebase.google.com -> Add project.
+      2. Build -> Firestore Database -> Create database -> Test mode.
+      3. Project settings (gear icon) -> General -> "Your apps" ->
+         click </> (web) -> register app -> copy the firebaseConfig
+         object into FIREBASE_CONFIG below.
+      4. Firestore -> Rules tab -> paste:
+
+           rules_version = '2';
+           service cloud.firestore {
+             match /databases/{database}/documents {
+               match /players/{playerId} { allow read, write: if true; }
+               match /leagues/{code}     { allow read, write: if true; }
+             }
+           }
+
+         Heads up: there's no real login system, so anyone with your
+         Firebase config could technically write to this data. Fine for
+         a fun leaderboard with friends; don't put anything sensitive
+         in it.
+
+      The <script> tags for Firebase itself are already in <head> above.
+      Until FIREBASE_CONFIG is filled in, the Leagues tab still shows up
+      but tells the user it isn't set up yet, instead of breaking.
+    */
+
+    const FIREBASE_CONFIG = {
+      apiKey: "PASTE_YOUR_API_KEY",
+      authDomain: "PASTE_YOUR_PROJECT.firebaseapp.com",
+      projectId: "PASTE_YOUR_PROJECT_ID",
+      storageBucket: "PASTE_YOUR_PROJECT.appspot.com",
+      messagingSenderId: "PASTE_YOUR_SENDER_ID",
+      appId: "PASTE_YOUR_APP_ID"
+    };
+
+    const FIREBASE_READY = typeof firebase !== "undefined" && FIREBASE_CONFIG.apiKey.indexOf("PASTE_YOUR") === -1;
+    let db = null;
+    if (FIREBASE_READY) {
+      firebase.initializeApp(FIREBASE_CONFIG);
+      db = firebase.firestore();
+    }
+    const NOT_READY_MSG = "<p class='empty' style='margin:8px 0;'>Leagues aren't set up yet — add your Firebase config in the script (see the comment above the Leagues section).</p>";
+
+    function getDeviceId() {
+      let id = localStorage.getItem("leagueDeviceId");
+      if (!id) {
+        id = "p_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 10);
+        localStorage.setItem("leagueDeviceId", id);
+      }
+      return id;
+    }
+
+    function getPlayerName() {
+      let name = localStorage.getItem("leaguePlayerName");
+      if (!name) {
+        name = (window.prompt("Pick a display name for leagues/leaderboards:", "") || "").trim();
+        if (!name) name = "Anonymous";
+        localStorage.setItem("leaguePlayerName", name);
+      }
+      return name;
+    }
+
+    function isPublic() { return localStorage.getItem("leaguePublicOptIn") === "true"; }
+
+    function getBestStreak() {
+      return habits.reduce((max, h) => Math.max(max, h.streak || 0), 0);
+    }
+
+    function syncPlayerDoc() {
+      if (!FIREBASE_READY) return Promise.resolve();
+      return db.collection("players").doc(getDeviceId()).set({
+        name: getPlayerName(),
+        bestStreak: getBestStreak(),
+        public: isPublic(),
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
+    }
+
+    function getOwnLeagueCodes() {
+      if (!FIREBASE_READY) return Promise.resolve([]);
+      return db.collection("players").doc(getDeviceId()).get().then(function(doc) {
+        const data = doc.data();
+        return (data && data.leagues) || [];
+      });
+    }
+
+    function generateLeagueCode() {
+      return Math.random().toString(36).slice(2, 8).toUpperCase();
+    }
+
+    function createLeague() {
+      if (!FIREBASE_READY) { alert("Leagues aren't set up yet — see the comment above the Leagues section in the script."); return; }
+      const name = (window.prompt("Name your league:", "") || "").trim();
+      if (!name) return;
+      const code = generateLeagueCode();
+      db.collection("leagues").doc(code).set({
+        name: name, code: code, createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      }).then(function() {
+        return db.collection("players").doc(getDeviceId()).set({
+          leagues: firebase.firestore.FieldValue.arrayUnion(code)
+        }, { merge: true });
+      }).then(function() {
+        alert("League \"" + name + "\" created! Share this code with friends: " + code);
+        renderMyLeagues();
+      }).catch(function(err) {
+        console.error(err);
+        alert("Couldn't create the league — check the browser console.");
+      });
+    }
+
+    function joinLeague() {
+      if (!FIREBASE_READY) { alert("Leagues aren't set up yet — see the comment above the Leagues section in the script."); return; }
+      const code = (window.prompt("Enter the league code your friend shared:", "") || "").trim().toUpperCase();
+      if (!code) return;
+      db.collection("leagues").doc(code).get().then(function(doc) {
+        if (!doc.exists) { alert("No league found with that code."); return; }
+        return db.collection("players").doc(getDeviceId()).set({
+          leagues: firebase.firestore.FieldValue.arrayUnion(code)
+        }, { merge: true }).then(function() {
+          alert("Joined \"" + doc.data().name + "\"!");
+          renderMyLeagues();
+        });
+      }).catch(function(err) {
+        console.error(err);
+        alert("Couldn't join the league — check the browser console.");
+      });
+    }
+
+    function rankRow(rank, name, streak, deviceId) {
+      const mine = deviceId === getDeviceId();
+      return "<div class='leader-row" + (mine ? " me" : "") + "'>" +
+        "<span class='rank-num'>" + rank + "</span>" +
+        "<span class='leader-name'>" + name + (mine ? " (you)" : "") + "</span>" +
+        "<span class='leader-streak'>🔥 " + streak + "</span>" +
+        "</div>";
+    }
+
+    function renderPublicLeaderboard() {
+      const container = document.getElementById("publicLeaderboard");
+      if (!FIREBASE_READY) { container.innerHTML = NOT_READY_MSG; return; }
+      container.innerHTML = "<p class='empty' style='margin:8px 0;'>Loading…</p>";
+      db.collection("players").where("public", "==", true).orderBy("bestStreak", "desc").limit(50).get()
+        .then(function(snapshot) {
+          if (snapshot.empty) {
+            container.innerHTML = "<p class='empty' style='margin:8px 0;'>No public players yet — be the first!</p>";
+            return;
+          }
+          let html = "";
+          let rank = 0;
+          snapshot.forEach(function(doc) {
+            rank++;
+            const d = doc.data();
+            html += rankRow(rank, d.name || "Anonymous", d.bestStreak || 0, doc.id);
+          });
+          container.innerHTML = html;
+        })
+        .catch(function(err) {
+          console.error(err);
+          container.innerHTML = "<p class='empty' style='margin:8px 0;'>Couldn't load the leaderboard. If the console shows a link to create a missing index, click it, wait a minute, then reopen this tab.</p>";
+        });
+    }
+
+    function renderMyLeagues() {
+      const listEl = document.getElementById("myLeaguesList");
+      if (!FIREBASE_READY) { listEl.innerHTML = NOT_READY_MSG; return; }
+      listEl.innerHTML = "<p class='empty' style='margin:8px 0;'>Loading…</p>";
+      getOwnLeagueCodes().then(function(codes) {
+        if (!codes.length) {
+          listEl.innerHTML = "<p class='empty' style='margin:8px 0;'>No leagues yet — create one or join a friend's.</p>";
+          return;
+        }
+        Promise.all(codes.map(code => db.collection("leagues").doc(code).get())).then(function(docs) {
+          let html = "";
+          docs.forEach(function(doc) {
+            if (!doc.exists) return;
+            const d = doc.data();
+            html += "<div class='league-card' data-code='" + d.code + "' data-name='" + d.name + "'>" +
+              "<span>" + d.name + "</span><span class='league-code'>" + d.code + "</span></div>";
+          });
+          listEl.innerHTML = html || "<p class='empty' style='margin:8px 0;'>No leagues yet.</p>";
+          listEl.querySelectorAll(".league-card").forEach(function(card) {
+            card.addEventListener("click", function() { openLeagueDetail(card.dataset.code, card.dataset.name); });
+          });
+        });
+      });
+    }
+
+    function openLeagueDetail(code, name) {
+      document.getElementById("myLeaguesSection").style.display = "none";
+      document.getElementById("leagueDetailView").style.display = "block";
+      document.getElementById("leagueDetailName").textContent = name + " (" + code + ")";
+      const board = document.getElementById("leagueLeaderboard");
+      board.innerHTML = "<p class='empty' style='margin:8px 0;'>Loading…</p>";
+      db.collection("players").where("leagues", "array-contains", code).orderBy("bestStreak", "desc").get()
+        .then(function(snapshot) {
+          if (snapshot.empty) {
+            board.innerHTML = "<p class='empty' style='margin:8px 0;'>No members yet.</p>";
+            return;
+          }
+          let html = "";
+          let rank = 0;
+          snapshot.forEach(function(doc) {
+            rank++;
+            const d = doc.data();
+            html += rankRow(rank, d.name || "Anonymous", d.bestStreak || 0, doc.id);
+          });
+          board.innerHTML = html;
+        })
+        .catch(function(err) {
+          console.error(err);
+          board.innerHTML = "<p class='empty' style='margin:8px 0;'>Couldn't load this league. If the console shows a link to create a missing index, click it, then try again.</p>";
+        });
+    }
+
+    function closeLeagueDetail() {
+      document.getElementById("leagueDetailView").style.display = "none";
+      document.getElementById("myLeaguesSection").style.display = "block";
+    }
+
+    document.getElementById("togglePublicBtn").textContent = isPublic() ? "On" : "Off";
+    document.getElementById("togglePublicBtn").addEventListener("click", function() {
+      const next = !isPublic();
+      localStorage.setItem("leaguePublicOptIn", String(next));
+      this.textContent = next ? "On" : "Off";
+      syncPlayerDoc().then(renderPublicLeaderboard);
+    });
+    document.getElementById("createLeagueBtn").addEventListener("click", createLeague);
+    document.getElementById("joinLeagueBtn").addEventListener("click", joinLeague);
+    document.getElementById("leagueBackBtn").addEventListener("click", closeLeagueDetail);
 
     /* ---------- Category / frequency helpers ---------- */
 
@@ -1052,6 +1320,7 @@
         list.appendChild(li);
       });
       localStorage.setItem("habits", JSON.stringify(habits));
+      syncPlayerDoc();
     }
 
     function renderStats() {
