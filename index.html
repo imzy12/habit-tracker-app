@@ -165,6 +165,9 @@
     .hub-tile .hub-icon { font-size: 26px; }
     .hub-tile .hub-label { font-size: 13px; font-weight: 600; }
 
+    .filter-row { display: flex; gap: 8px; margin-bottom: 16px; }
+    .filter-row .modal-input { flex: 1; padding: 10px 12px; }
+
     .bottom-nav {
       position: fixed; bottom: 0; left: 0; right: 0; background: var(--bg);
       border-top: 1px solid var(--line); display: flex; justify-content: space-around; padding: 12px 0 16px 0;
@@ -308,6 +311,10 @@
     <div class="page" id="page-habits">
       <div class="top-bar"><button class="back-btn" id="habitsBackBtn">← Back</button></div>
       <button id="addBtn" class="add-habit-btn">+ Add Habit</button>
+      <div class="filter-row">
+        <input type="text" id="habitSearch" class="modal-input" placeholder="Search habits…">
+        <select id="categoryFilter" class="modal-input"></select>
+      </div>
       <ul id="habitList"></ul>
       <p class="empty" id="emptyMsg">No habits yet — add one to get started.</p>
       <div class="section-label">Archived</div>
@@ -491,6 +498,8 @@
 
     let currentHeatmapRange = "daily";
     let currentDetailIndex = null;
+    let habitSearchQuery = "";
+    let habitCategoryFilter = "all";
     let editingIndex = null;
 
     const BADGE_LEVELS = [
@@ -1128,6 +1137,32 @@
       });
     }
 
+    function buildCategoryFilter() {
+      const select = document.getElementById("categoryFilter");
+      select.innerHTML = "<option value='all'>All categories</option>";
+      CATEGORIES.forEach(function(cat) {
+        const opt = document.createElement("option");
+        opt.value = cat.id;
+        opt.textContent = cat.icon + " " + cat.label;
+        select.appendChild(opt);
+      });
+    }
+
+    function matchesFilters(habit) {
+      const matchesSearch = !habitSearchQuery || habit.name.toLowerCase().includes(habitSearchQuery);
+      const matchesCategory = habitCategoryFilter === "all" || habit.category === habitCategoryFilter;
+      return matchesSearch && matchesCategory;
+    }
+
+    document.getElementById("habitSearch").addEventListener("input", function() {
+      habitSearchQuery = this.value.trim().toLowerCase();
+      renderHabits();
+    });
+    document.getElementById("categoryFilter").addEventListener("change", function() {
+      habitCategoryFilter = this.value;
+      renderHabits();
+    });
+
     function buildDayPicker() {
       const row = document.getElementById("dayPickerRow");
       row.innerHTML = "";
@@ -1399,7 +1434,11 @@
       const list = document.getElementById("habitList");
       const emptyMsg = document.getElementById("emptyMsg");
       list.innerHTML = "";
-      const visibleCount = habits.filter(h => !h.archived).length;
+      const activeHabits = habits.filter(h => !h.archived);
+      const visibleCount = activeHabits.filter(matchesFilters).length;
+      emptyMsg.textContent = activeHabits.length === 0
+        ? "No habits yet — add one to get started."
+        : "No habits match your search.";
       emptyMsg.style.display = visibleCount === 0 ? "block" : "none";
       const today = todayString();
 
@@ -1416,6 +1455,7 @@
             if (diff > 1) habit.streak = 0;
           }
         }
+        if (!matchesFilters(habit)) return;
         const li = document.createElement("li");
         li.className = streakTier(habit.streak);
         li.addEventListener("click", function(e) {
@@ -1726,6 +1766,7 @@
     }
 
     buildCategorySelect();
+    buildCategoryFilter();
     buildDayPicker();
     renderHabits();
   </script>
