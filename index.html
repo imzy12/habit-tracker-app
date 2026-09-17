@@ -182,6 +182,7 @@
     .cal-cell.done { background: var(--flame-grad); color: white; font-weight: 600; }
     .cal-cell.today { box-shadow: 0 0 0 2px var(--flame-1) inset; }
     .cal-cell.future { opacity: 0.35; cursor: default; pointer-events: none; }
+    .mini-year-grid { margin-top: 10px; }
 
     .bottom-nav {
       position: fixed; bottom: 0; left: 0; right: 0; background: var(--bg);
@@ -1721,9 +1722,7 @@
       }
     }
 
-    function toggleDayCompletion(dateStr) {
-      const habit = habits[currentDetailIndex];
-      if (!habit) return;
+    function applyDayToggle(habit, dateStr) {
       const idx = habit.history.indexOf(dateStr);
       if (idx === -1) {
         habit.history.push(dateStr);
@@ -1731,8 +1730,46 @@
         habit.history.splice(idx, 1);
       }
       recalcHabitStreak(habit);
+    }
+
+    function toggleDayCompletion(dateStr) {
+      const habit = habits[currentDetailIndex];
+      if (!habit) return;
+      applyDayToggle(habit, dateStr);
       saveAndRender();
       renderDetail();
+    }
+
+    function toggleDayForHabitIndex(index, dateStr) {
+      const habit = habits[index];
+      if (!habit) return;
+      applyDayToggle(habit, dateStr);
+      saveAndRender();
+    }
+
+    function buildMiniYearGrid(habit, index) {
+      const scroll = document.createElement("div");
+      scroll.className = "heatmap-scroll mini-year-grid";
+      const grid = document.createElement("div");
+      grid.className = "heatmap-grid";
+      const todayStr = todayString();
+      for (let i = 364; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        const ds = d.toISOString().split("T")[0];
+        const cell = document.createElement("div");
+        cell.className = "heatmap-cell" + (habit.history.includes(ds) ? " l3" : "");
+        cell.title = ds;
+        if (ds <= todayStr) {
+          cell.addEventListener("click", function(e) {
+            e.stopPropagation();
+            toggleDayForHabitIndex(index, ds);
+          });
+        }
+        grid.appendChild(cell);
+      }
+      scroll.appendChild(grid);
+      return scroll;
     }
 
     function recalcHabitStreak(habit) {
@@ -1936,6 +1973,7 @@
         meta.innerHTML = "<span class='meta-dot' style='background:" + habit.color + "'></span>" +
           "<span>" + cat.icon + " " + cat.label + " · " + frequencyLabel(habit) + (habit.description ? " · " + habit.description : "") + "</span>";
         li.appendChild(meta);
+        li.appendChild(buildMiniYearGrid(habit, index));
 
         list.appendChild(li);
       });
