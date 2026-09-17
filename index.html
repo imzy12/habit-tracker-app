@@ -168,6 +168,11 @@
     .filter-row { display: flex; gap: 8px; margin-bottom: 16px; }
     .filter-row .modal-input { flex: 1; padding: 10px 12px; }
 
+    .premium-card { text-align: center; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 24px; margin-bottom: 10px; }
+    .premium-features { list-style: none; padding: 0; margin: 0; }
+    .premium-features li { padding: 10px 4px; border-bottom: 1px solid var(--line); font-size: 14px; color: var(--text); }
+    .premium-features li::before { content: "✓ "; color: var(--flame-1); font-weight: 700; }
+
     .bottom-nav {
       position: fixed; bottom: 0; left: 0; right: 0; background: var(--bg);
       border-top: 1px solid var(--line); display: flex; justify-content: space-around; padding: 12px 0 16px 0;
@@ -305,6 +310,7 @@
         <button class="hub-tile" data-hub="badges"><span class="hub-icon">🏅</span><span class="hub-label">Badges</span></button>
         <button class="hub-tile" data-hub="journal"><span class="hub-icon">📓</span><span class="hub-label">Journal</span></button>
         <button class="hub-tile" data-hub="settings"><span class="hub-icon">⚙️</span><span class="hub-label">Settings</span></button>
+        <button class="hub-tile" data-hub="premium"><span class="hub-icon">⭐</span><span class="hub-label">Premium</span></button>
       </div>
     </div>
 
@@ -365,6 +371,27 @@
       <div class="top-bar"><button class="back-btn" id="journalBackBtn">← Back</button></div>
       <div id="journalList"></div>
       <p class="empty" id="journalEmpty">No habits yet — add one to start journaling.</p>
+    </div>
+
+    <div class="page" id="page-premium">
+      <div class="top-bar"><button class="back-btn" id="premiumBackBtn">← Back</button></div>
+      <div class="premium-card">
+        <div style="font-size:40px;">⭐</div>
+        <h2 style="margin:8px 0 4px 0;">Habit Tracker Premium</h2>
+        <p id="premiumStatusText" style="color:var(--text-muted); font-size:14px;">You're on the Free plan</p>
+      </div>
+      <div class="section-label">What you get</div>
+      <ul class="premium-features">
+        <li>Unlimited habits (free plan is capped at 3)</li>
+        <li>Private &amp; public Leagues with friends</li>
+        <li>Journal — all your habit notes in one place</li>
+      </ul>
+      <a id="buyPremiumBtn" class="primaryBtn" style="display:block; text-align:center; padding:14px; margin:20px 0 12px 0; text-decoration:none;" href="#" target="_blank" rel="noopener">Buy Premium</a>
+      <div class="section-label">Already paid?</div>
+      <div class="input-row">
+        <input type="text" id="redeemCodeInput" class="modal-input" placeholder="Enter your code" style="flex:1;">
+        <button id="redeemCodeBtn" class="primaryBtn">Unlock</button>
+      </div>
     </div>
 
     <div class="page" id="page-leagues">
@@ -500,6 +527,10 @@
     let currentDetailIndex = null;
     let habitSearchQuery = "";
     let habitCategoryFilter = "all";
+
+    const FREE_HABIT_LIMIT = 3;
+    const STRIPE_PAYMENT_LINK = "https://buy.stripe.com/REPLACE_WITH_YOUR_PAYMENT_LINK";
+    function isPremiumUser() { return localStorage.getItem("isPremium") === "true"; }
     let editingIndex = null;
 
     const BADGE_LEVELS = [
