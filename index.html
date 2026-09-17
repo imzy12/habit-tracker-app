@@ -613,6 +613,10 @@
 
     document.querySelectorAll(".nav-btn").forEach(function(btn) {
       btn.addEventListener("click", function() {
+        if (btn.dataset.page === "leagues" && !isPremiumUser()) {
+          openHubPage("page-premium");
+          return;
+        }
         document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
         btn.classList.add("active");
         showPage("page-" + btn.dataset.page);
@@ -640,6 +644,10 @@
     document.querySelectorAll(".hub-tile").forEach(function(tile) {
       tile.addEventListener("click", function() {
         const target = tile.dataset.hub;
+        if ((target === "leagues" || target === "journal") && !isPremiumUser()) {
+          openHubPage("page-premium");
+          return;
+        }
         if (target === "stats" || target === "leagues" || target === "settings") {
           document.querySelector('.nav-btn[data-page="' + target + '"]').click();
         } else if (target === "habits") {
@@ -648,6 +656,8 @@
           openHubPage("page-badges", renderBadges);
         } else if (target === "journal") {
           openHubPage("page-journal", renderJournal);
+        } else if (target === "premium") {
+          openHubPage("page-premium");
         }
       });
     });
@@ -655,6 +665,56 @@
     document.getElementById("habitsBackBtn").addEventListener("click", function() { showPage("page-home"); });
     document.getElementById("badgesBackBtn").addEventListener("click", function() { showPage("page-home"); });
     document.getElementById("journalBackBtn").addEventListener("click", function() { showPage("page-home"); });
+    document.getElementById("premiumBackBtn").addEventListener("click", function() { showPage("page-home"); });
+
+    /* ---------- Premium ---------- */
+
+    function refreshPremiumUI() {
+      const premium = isPremiumUser();
+      const statusEl = document.getElementById("premiumStatusText");
+      if (statusEl) statusEl.textContent = premium ? "You're Premium ✨ — thank you!" : "You're on the Free plan";
+      const buyBtn = document.getElementById("buyPremiumBtn");
+      if (buyBtn) {
+        buyBtn.href = STRIPE_PAYMENT_LINK;
+        buyBtn.style.display = premium ? "none" : "block";
+      }
+      document.querySelectorAll(".hub-tile").forEach(function(tile) {
+        const target = tile.dataset.hub;
+        const label = tile.querySelector(".hub-label");
+        if (!label) return;
+        const locked = (target === "leagues" || target === "journal") && !premium;
+        label.textContent = label.textContent.replace(" 🔒", "") + (locked ? " 🔒" : "");
+      });
+    }
+
+    function redeemCode() {
+      const input = document.getElementById("redeemCodeInput");
+      const code = input.value.trim().toUpperCase();
+      if (!code) return;
+      if (!FIREBASE_READY) {
+        alert("Redeeming codes needs the same Firebase setup as Leagues — see the comment above the Leagues section in the script.");
+        return;
+      }
+      db.collection("licenseCodes").doc(code).get().then(function(doc) {
+        if (!doc.exists) { alert("That code isn't valid."); return; }
+        const data = doc.data();
+        if (data.used) { alert("That code has already been used."); return; }
+        return db.collection("licenseCodes").doc(code).set({
+          used: true, redeemedAt: firebase.firestore.FieldValue.serverTimestamp()
+        }, { merge: true }).then(function() {
+          localStorage.setItem("isPremium", "true");
+          input.value = "";
+          refreshPremiumUI();
+          alert("Premium unlocked! Thank you 🎉");
+        });
+      }).catch(function(err) {
+        console.error(err);
+        alert("Couldn't check that code — check the browser console.");
+      });
+    }
+
+    document.getElementById("redeemCodeBtn").addEventListener("click", redeemCode);
+    refreshPremiumUI();
 
     function renderJournal() {
       const container = document.getElementById("journalList");
@@ -821,6 +881,7 @@
                match /players/{playerId} { allow read, write: if true; }
                match /leagues/{code}     { allow read, write: if true; }
                match /backups/{code}     { allow read, write: if true; }
+               match /licenseCodes/{code}{ allow read, write: if true; }
              }
            }
 
@@ -1286,6 +1347,13 @@
       const nameInput = document.getElementById("modalHabitName");
       const name = nameInput.value.trim();
       if (name === "") { nameInput.focus(); return; }
+
+      if (editingIndex === null && !isPremiumUser() && habits.filter(h => !h.archived).length >= FREE_HABIT_LIMIT) {
+        closeHabitModal();
+        alert("The free plan is limited to " + FREE_HABIT_LIMIT + " active habits. Upgrade to Premium for unlimited habits.");
+        openHubPage("page-premium");
+        return;
+      }
 
       const category = document.getElementById("modalCategory").value;
       const selectedSwatch = document.querySelector(".color-swatch.selected");
