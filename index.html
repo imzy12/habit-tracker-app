@@ -173,6 +173,16 @@
     .premium-features li { padding: 10px 4px; border-bottom: 1px solid var(--line); font-size: 14px; color: var(--text); }
     .premium-features li::before { content: "✓ "; color: var(--flame-1); font-weight: 700; }
 
+    .calendar-card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px; margin-bottom: 20px; }
+    .calendar-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-weight: 600; font-size: 14px; color: var(--text); }
+    .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+    .cal-dow { text-align: center; font-size: 10px; color: var(--text-muted); padding-bottom: 4px; }
+    .cal-cell { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; border-radius: 6px; background: var(--surface-2); font-size: 11px; color: var(--text-muted); cursor: pointer; }
+    .cal-cell.empty-cell { background: none; cursor: default; }
+    .cal-cell.done { background: var(--flame-grad); color: white; font-weight: 600; }
+    .cal-cell.today { box-shadow: 0 0 0 2px var(--flame-1) inset; }
+    .cal-cell.future { opacity: 0.35; cursor: default; pointer-events: none; }
+
     .bottom-nav {
       position: fixed; bottom: 0; left: 0; right: 0; background: var(--bg);
       border-top: 1px solid var(--line); display: flex; justify-content: space-around; padding: 12px 0 16px 0;
@@ -342,6 +352,15 @@
       <div class="badge-grid" id="detailBadges"></div>
       <div class="section-label">Last 30 days</div>
       <div class="heatmap-card" style="margin-bottom:16px;"><div id="detailHeatmap"></div></div>
+      <div class="section-label">Calendar</div>
+      <div class="calendar-card">
+        <div class="calendar-nav">
+          <button id="calPrevBtn" class="icon-btn">←</button>
+          <span id="calMonthLabel"></span>
+          <button id="calNextBtn" class="icon-btn">→</button>
+        </div>
+        <div class="calendar-grid" id="calendarGrid"></div>
+      </div>
       <div class="section-label">Notes</div>
       <textarea id="detailNotes" placeholder="Why does this habit matter to you?"></textarea>
     </div>
@@ -1471,8 +1490,14 @@
       });
     }
 
+    let calendarViewYear = null;
+    let calendarViewMonth = null;
+
     function openDetail(index) {
       currentDetailIndex = index;
+      const now = new Date();
+      calendarViewYear = now.getFullYear();
+      calendarViewMonth = now.getMonth();
       document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
       showPage("page-detail");
       renderDetail();
@@ -1514,6 +1539,8 @@
       }
       heatmap.appendChild(wrap);
 
+      renderCalendar();
+
       const notesBox = document.getElementById("detailNotes");
       notesBox.value = habit.notes || "";
       notesBox.oninput = function() {
@@ -1521,6 +1548,136 @@
         localStorage.setItem("habits", JSON.stringify(habits));
       };
     }
+
+    function renderCalendar() {
+      if (currentDetailIndex === null || calendarViewYear === null) return;
+      const habit = habits[currentDetailIndex];
+      if (!habit) return;
+
+      const monthNames = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+      document.getElementById("calMonthLabel").textContent = monthNames[calendarViewMonth] + " " + calendarViewYear;
+
+      const grid = document.getElementById("calendarGrid");
+      grid.innerHTML = "";
+      ["S","M","T","W","T","F","S"].forEach(function(l) {
+        const dow = document.createElement("div");
+        dow.className = "cal-dow";
+        dow.textContent = l;
+        grid.appendChild(dow);
+      });
+
+      const firstOfMonth = new Date(calendarViewYear, calendarViewMonth, 1);
+      const startOffset = firstOfMonth.getDay();
+      const daysInMonth = new Date(calendarViewYear, calendarViewMonth + 1, 0).getDate();
+      const todayStr = todayString();
+
+      for (let i = 0; i < startOffset; i++) {
+        const blank = document.createElement("div");
+        blank.className = "cal-cell empty-cell";
+        grid.appendChild(blank);
+      }
+
+      for (let day = 1; day <= daysInMonth; day++) {
+        const d = new Date(calendarViewYear, calendarViewMonth, day);
+        const ds = d.toISOString().split("T")[0];
+        const cell = document.createElement("div");
+        cell.className = "cal-cell";
+        if (habit.history.includes(ds)) cell.classList.add("done");
+        if (ds === todayStr) cell.classList.add("today");
+        if (ds > todayStr) cell.classList.add("future");
+        cell.textContent = day;
+        if (ds <= todayStr) {
+          cell.addEventListener("click", function() { toggleDayCompletion(ds); });
+        }
+        grid.appendChild(cell);
+      }
+    }
+
+    function toggleDayCompletion(dateStr) {
+      const habit = habits[currentDetailIndex];
+      if (!habit) return;
+      const idx = habit.history.indexOf(dateStr);
+      if (idx === -1) {
+        habit.history.push(dateStr);
+      } else {
+        habit.history.splice(idx, 1);
+      }
+      recalcHabitStreak(habit);
+      saveAndRender();
+      renderDetail();
+    }
+
+    function recalcHabitStreak(habit) {
+      const today = todayString();
+      if (habit.history.length === 0) {
+        habit.streak = 0;
+        habit.lastDone = null;
+        return;
+      }
+      const sortedHistory = habit.history.slice().sort();
+      const lastDoneDate = sortedHistory[sortedHistory.length - 1];
+      habit.lastDone = lastDoneDate;
+
+      let broken = false;
+      if (lastDoneDate !== today) {
+        if (habit.frequency && habit.frequency.type === "custom") {
+          broken = hasMissedScheduledDay(habit, lastDoneDate, today);
+        } else {
+          const diff = Math.floor((new Date(today) - new Date(lastDoneDate)) / 86400000);
+          broken = diff > 1;
+        }
+      }
+
+      if (broken) {
+        habit.streak = 0;
+      } else {
+        let streak = 0;
+        let d = new Date(lastDoneDate);
+        while (true) {
+          const ds = d.toISOString().split("T")[0];
+          if (isScheduledDay(habit, ds)) {
+            if (habit.history.includes(ds)) {
+              streak++;
+            } else {
+              break;
+            }
+          }
+          d.setDate(d.getDate() - 1);
+          if (streak > 3650) break;
+        }
+        habit.streak = streak;
+      }
+
+      const historySet = new Set(habit.history);
+      let best = 0;
+      let cur = 0;
+      let d2 = new Date(sortedHistory[0]);
+      const end = new Date(lastDoneDate);
+      while (d2 <= end) {
+        const ds2 = d2.toISOString().split("T")[0];
+        if (isScheduledDay(habit, ds2)) {
+          if (historySet.has(ds2)) {
+            cur++;
+            if (cur > best) best = cur;
+          } else {
+            cur = 0;
+          }
+        }
+        d2.setDate(d2.getDate() + 1);
+      }
+      habit.bestStreak = Math.max(habit.bestStreak || 0, best);
+    }
+
+    document.getElementById("calPrevBtn").addEventListener("click", function() {
+      calendarViewMonth--;
+      if (calendarViewMonth < 0) { calendarViewMonth = 11; calendarViewYear--; }
+      renderCalendar();
+    });
+    document.getElementById("calNextBtn").addEventListener("click", function() {
+      calendarViewMonth++;
+      if (calendarViewMonth > 11) { calendarViewMonth = 0; calendarViewYear++; }
+      renderCalendar();
+    });
 
     function streakTier(streak) {
       if (streak >= 7) return "tier-3";
@@ -1546,14 +1703,7 @@
 
       habits.forEach(function(habit, index) {
         if (habit.archived) return;
-        if (habit.lastDone) {
-          if (habit.frequency && habit.frequency.type === "custom") {
-            if (hasMissedScheduledDay(habit, habit.lastDone, today)) habit.streak = 0;
-          } else {
-            const diff = Math.floor((new Date(today) - new Date(habit.lastDone)) / 86400000);
-            if (diff > 1) habit.streak = 0;
-          }
-        }
+        recalcHabitStreak(habit);
         if (!matchesFilters(habit)) return;
         const li = document.createElement("li");
         li.className = streakTier(habit.streak);
