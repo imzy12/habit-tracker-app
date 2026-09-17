@@ -389,6 +389,10 @@
         <label class="import-label" for="importFile">Import</label>
         <input type="file" id="importFile" accept="application/json" style="display:none;">
       </div>
+      <div class="setting-row"><span>Your sync code</span><span id="syncCodeDisplay" style="font-family:'Space Grotesk', sans-serif; font-weight:600;"></span></div>
+      <div class="setting-row"><span>Cloud backup</span><span id="cloudSyncStatus" style="font-size:12px; color:var(--text-muted);">Not synced yet</span></div>
+      <div class="setting-row"><span>Restore on this device</span><button id="cloudRestoreBtn">Restore</button></div>
+      <div class="setting-row"><span>Use a different sync code</span><button id="useOtherCodeBtn">Enter code</button></div>
     </div>
 
     <nav class="bottom-nav">
@@ -752,11 +756,12 @@
       reader.readAsText(file);
     });
 
-    /* ---------- Leagues (private leagues + public leaderboard) ---------- */
+    /* ---------- Leagues (private leagues + public leaderboard) & Cloud Sync ---------- */
     /*
       Needs a free Firebase project, because comparing streaks between
-      friends means the data has to live somewhere other than each
-      person's own browser. Setup (~5 min, free):
+      friends — and backing up your habits across devices — means the
+      data has to live somewhere other than each person's own browser.
+      Setup (~5 min, free):
 
       1. https://console.firebase.google.com -> Add project.
       2. Build -> Firestore Database -> Create database -> Test mode.
@@ -770,6 +775,7 @@
              match /databases/{database}/documents {
                match /players/{playerId} { allow read, write: if true; }
                match /leagues/{code}     { allow read, write: if true; }
+               match /backups/{code}     { allow read, write: if true; }
              }
            }
 
@@ -986,6 +992,89 @@
     document.getElementById("createLeagueBtn").addEventListener("click", createLeague);
     document.getElementById("joinLeagueBtn").addEventListener("click", joinLeague);
     document.getElementById("leagueBackBtn").addEventListener("click", closeLeagueDetail);
+
+    /* ---------- Cloud Sync (backs up your actual habits across devices) ---------- */
+
+    function getSyncCode() {
+      let code = localStorage.getItem("cloudSyncCode");
+      if (!code) {
+        code = Math.random().toString(36).slice(2, 10).toUpperCase();
+        localStorage.setItem("cloudSyncCode", code);
+      }
+      return code;
+    }
+
+    function syncToCloud() {
+      if (!FIREBASE_READY) return Promise.resolve();
+      return db.collection("backups").doc(getSyncCode()).set({
+        habits: habits,
+        totalXP: totalXP,
+        theme: localStorage.getItem("theme") || "dark",
+        reminderTime: localStorage.getItem("reminderTime") || "",
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      }).then(function() {
+        const el = document.getElementById("cloudSyncStatus");
+        if (el) el.textContent = "Synced just now";
+      }).catch(function(err) {
+        console.error(err);
+        const el = document.getElementById("cloudSyncStatus");
+        if (el) el.textContent = "Sync failed — check console";
+      });
+    }
+
+    function restoreFromCloud() {
+      if (!FIREBASE_READY) { alert("Cloud sync isn't set up yet — see the comment above the Leagues section in the script."); return; }
+      db.collection("backups").doc(getSyncCode()).get().then(function(doc) {
+        if (!doc.exists) { alert("No cloud backup found for this sync code yet."); return; }
+        const data = doc.data();
+        const confirmed = confirm("This will replace your current habits and XP with the cloud backup saved under this sync code. Continue?");
+        if (!confirmed) return;
+
+        habits = data.habits || [];
+        habits.forEach(h => {
+          if (!h.history) h.history = [];
+          if (!h.badges) h.badges = [];
+          if (h.bestStreak === undefined) h.bestStreak = h.streak || 0;
+          if (h.notes === undefined) h.notes = "";
+          if (!h.category) h.category = "other";
+          if (!h.color) h.color = HABIT_COLORS[0];
+          if (!h.frequency) h.frequency = { type: "daily" };
+          if (!h.goalType) h.goalType = "check";
+          if (!h.dailyProgress) h.dailyProgress = {};
+        });
+        totalXP = typeof data.totalXP === "number" ? data.totalXP : 0;
+        localStorage.setItem("totalXP", String(totalXP));
+
+        if (data.theme === "light") {
+          document.body.classList.add("light");
+          localStorage.setItem("theme", "light");
+        } else {
+          document.body.classList.remove("light");
+          localStorage.setItem("theme", "dark");
+        }
+        if (data.reminderTime) {
+          localStorage.setItem("reminderTime", data.reminderTime);
+          document.getElementById("reminderTime").value = data.reminderTime;
+        }
+
+        saveAndRender();
+        renderLevel();
+        alert("Restored from cloud!");
+      }).catch(function(err) {
+        console.error(err);
+        alert("Couldn't restore — check the browser console.");
+      });
+    }
+
+    document.getElementById("syncCodeDisplay").textContent = getSyncCode();
+    document.getElementById("cloudRestoreBtn").addEventListener("click", restoreFromCloud);
+    document.getElementById("useOtherCodeBtn").addEventListener("click", function() {
+      const entered = (prompt("Enter your existing sync code (from another device):", "") || "").trim().toUpperCase();
+      if (!entered) return;
+      localStorage.setItem("cloudSyncCode", entered);
+      document.getElementById("syncCodeDisplay").textContent = entered;
+      restoreFromCloud();
+    });
 
     /* ---------- Category / frequency helpers ---------- */
 
@@ -1407,6 +1496,7 @@
       });
       localStorage.setItem("habits", JSON.stringify(habits));
       syncPlayerDoc();
+      syncToCloud();
     }
 
     function renderStats() {
