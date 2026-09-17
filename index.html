@@ -436,7 +436,7 @@
     <div class="page" id="page-settings">
       <div class="top-bar"><h2>Settings</h2></div>
       <div class="setting-row"><span>Light mode</span><button id="themeToggle">Toggle</button></div>
-      <div class="setting-row"><span>Daily reminder</span><input type="time" id="reminderTime"></div>
+      <div class="setting-row"><span>General reminder (all habits)</span><input type="time" id="reminderTime"></div>
       <div class="setting-row"><span>Enable notifications</span><button id="enableNotif">Enable</button></div>
       <div class="setting-row"><span>Backup your data</span><button id="exportBtn">Export</button></div>
       <div class="setting-row">
@@ -481,6 +481,12 @@
       <label class="modal-label" for="modalHabitName">Name</label>
       <input type="text" id="modalHabitName" class="modal-input" placeholder="e.g. Drink water">
 
+      <label class="modal-label" for="modalIcon">Icon (optional)</label>
+      <input type="text" id="modalIcon" class="modal-input" placeholder="e.g. 💧 (leave blank to use category icon)" maxlength="4">
+
+      <label class="modal-label" for="modalDescription">Description (optional)</label>
+      <input type="text" id="modalDescription" class="modal-input" placeholder="A short note about this habit">
+
       <label class="modal-label" for="modalCategory">Category</label>
       <select id="modalCategory" class="modal-input"></select>
 
@@ -491,8 +497,16 @@
       <div class="freq-options">
         <label class="freq-radio"><input type="radio" name="freqType" value="daily" checked> Every day</label>
         <label class="freq-radio"><input type="radio" name="freqType" value="custom"> Specific days</label>
+        <label class="freq-radio"><input type="radio" name="freqType" value="count"> X times per week/month</label>
       </div>
       <div id="dayPickerRow" class="day-picker-row"></div>
+      <div id="countRow" style="display:none; gap:8px; margin-top:10px;">
+        <input type="number" id="modalCountTarget" class="modal-input" placeholder="Target (e.g. 3)" min="1" style="flex:1;">
+        <select id="modalCountPeriod" class="modal-input" style="flex:1;">
+          <option value="week">per week</option>
+          <option value="month">per month</option>
+        </select>
+      </div>
 
       <label class="modal-label">Goal type</label>
       <div class="freq-options">
@@ -503,6 +517,9 @@
         <input type="number" id="modalTargetQty" class="modal-input" placeholder="Target (e.g. 8)" min="1">
         <input type="text" id="modalUnit" class="modal-input" placeholder="Unit (e.g. glasses)" style="margin-top:8px;">
       </div>
+
+      <label class="modal-label" for="modalReminderTime">Reminder (optional)</label>
+      <input type="time" id="modalReminderTime" class="modal-input">
 
       <div class="modal-actions">
         <button id="modalCancelBtn" class="modal-btn-secondary">Cancel</button>
@@ -538,6 +555,9 @@
       if (!h.goalType) h.goalType = "check";
       if (!h.dailyProgress) h.dailyProgress = {};
       if (h.archived === undefined) h.archived = false;
+      if (h.icon === undefined) h.icon = "";
+      if (h.description === undefined) h.description = "";
+      if (h.reminderTime === undefined) h.reminderTime = "";
     });
 
     let totalXP = parseInt(localStorage.getItem("totalXP") || "0", 10);
@@ -790,16 +810,28 @@
       });
     });
     setInterval(function() {
-      const time = localStorage.getItem("reminderTime");
-      if (!time || Notification.permission !== "granted") return;
+      if (!("Notification" in window) || Notification.permission !== "granted") return;
       const now = new Date();
       const currentTime = now.toTimeString().slice(0,5);
-      const alreadyNotified = localStorage.getItem("notifiedDate") === todayString();
-      if (currentTime === time && !alreadyNotified) {
-        const undone = habits.filter(h => h.lastDone !== todayString());
+      const today = todayString();
+
+      const time = localStorage.getItem("reminderTime");
+      const alreadyNotified = localStorage.getItem("notifiedDate") === today;
+      if (time && currentTime === time && !alreadyNotified) {
+        const undone = habits.filter(h => !h.archived && h.lastDone !== today);
         if (undone.length > 0) new Notification("Habit Tracker", { body: undone.length + " habit(s) still to do today!" });
-        localStorage.setItem("notifiedDate", todayString());
+        localStorage.setItem("notifiedDate", today);
       }
+
+      habits.forEach(function(habit, index) {
+        if (habit.archived || !habit.reminderTime) return;
+        if (habit.reminderTime !== currentTime || habit.lastDone === today) return;
+        const key = "habitNotified_" + index + "_" + today;
+        if (localStorage.getItem(key) === "true") return;
+        const icon = habit.icon || categoryInfo(habit.category).icon;
+        new Notification("Habit Tracker", { body: icon + " Time for: " + habit.name });
+        localStorage.setItem(key, "true");
+      });
     }, 30000);
 
     /* ---------- Backup / restore ---------- */
@@ -856,6 +888,9 @@
           if (!h.goalType) h.goalType = "check";
           if (!h.dailyProgress) h.dailyProgress = {};
       if (h.archived === undefined) h.archived = false;
+      if (h.icon === undefined) h.icon = "";
+      if (h.description === undefined) h.description = "";
+      if (h.reminderTime === undefined) h.reminderTime = "";
         });
         totalXP = typeof data.totalXP === "number" ? data.totalXP : 0;
         localStorage.setItem("totalXP", String(totalXP));
@@ -1167,6 +1202,9 @@
           if (!h.goalType) h.goalType = "check";
           if (!h.dailyProgress) h.dailyProgress = {};
       if (h.archived === undefined) h.archived = false;
+      if (h.icon === undefined) h.icon = "";
+      if (h.description === undefined) h.description = "";
+      if (h.reminderTime === undefined) h.reminderTime = "";
         });
         totalXP = typeof data.totalXP === "number" ? data.totalXP : 0;
         localStorage.setItem("totalXP", String(totalXP));
@@ -1208,15 +1246,35 @@
       return CATEGORIES.find(c => c.id === id) || CATEGORIES[CATEGORIES.length - 1];
     }
 
+    function getPeriodKey(dateStr, period) {
+      const d = new Date(dateStr);
+      if (period === "month") {
+        return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0");
+      }
+      const sunday = new Date(d);
+      sunday.setDate(d.getDate() - d.getDay());
+      return sunday.toISOString().split("T")[0];
+    }
+
+    function getPeriodCount(habit, periodKey, period) {
+      return habit.history.filter(function(ds) { return getPeriodKey(ds, period) === periodKey; }).length;
+    }
+
     function frequencyLabel(habit) {
       if (!habit.frequency || habit.frequency.type === "daily") return "Daily";
+      if (habit.frequency.type === "count") {
+        const period = habit.frequency.period === "month" ? "month" : "week";
+        const target = habit.frequency.target || 1;
+        const progress = getPeriodCount(habit, getPeriodKey(todayString(), period), period);
+        return progress + "/" + target + " this " + period;
+      }
       const days = (habit.frequency.days || []).slice().sort();
       if (days.length === 0 || days.length === 7) return "Daily";
       return days.map(d => DAY_NAMES_FULL[d]).join(", ");
     }
 
     function isScheduledDay(habit, dateStr) {
-      if (!habit.frequency || habit.frequency.type === "daily") return true;
+      if (!habit.frequency || habit.frequency.type === "daily" || habit.frequency.type === "count") return true;
       const days = habit.frequency.days || [];
       if (days.length === 0) return true;
       const day = new Date(dateStr).getDay();
@@ -1233,6 +1291,59 @@
         d.setDate(d.getDate() + 1);
       }
       return false;
+    }
+
+    function recalcCountStreak(habit) {
+      const period = habit.frequency.period === "month" ? "month" : "week";
+      const target = habit.frequency.target || 1;
+      const today = todayString();
+
+      if (habit.history.length === 0) {
+        habit.streak = 0;
+        habit.lastDone = null;
+        habit.bestStreak = habit.bestStreak || 0;
+        return;
+      }
+      const sortedHistory = habit.history.slice().sort();
+      habit.lastDone = sortedHistory[sortedHistory.length - 1];
+
+      let streak = 0;
+      let cursor = new Date(today);
+      let first = true;
+      let safety = 0;
+      while (safety < 1000) {
+        safety++;
+        const key = getPeriodKey(cursor.toISOString().split("T")[0], period);
+        const count = getPeriodCount(habit, key, period);
+        if (first) {
+          if (count >= target) streak++;
+          first = false;
+        } else {
+          if (count >= target) { streak++; } else { break; }
+        }
+        if (period === "month") {
+          cursor.setDate(1);
+          cursor.setMonth(cursor.getMonth() - 1);
+        } else {
+          cursor.setDate(cursor.getDate() - 7);
+        }
+        if (cursor.getFullYear() < 2000) break;
+      }
+      habit.streak = streak;
+
+      let best = 0, cur = 0, lastKey = null;
+      const scan = new Date(sortedHistory[0]);
+      const end = new Date(today);
+      while (scan <= end) {
+        const k = getPeriodKey(scan.toISOString().split("T")[0], period);
+        if (k !== lastKey) {
+          const c = getPeriodCount(habit, k, period);
+          if (c >= target) { cur++; if (cur > best) best = cur; } else { cur = 0; }
+          lastKey = k;
+        }
+        scan.setDate(scan.getDate() + 1);
+      }
+      habit.bestStreak = Math.max(habit.bestStreak || 0, best);
     }
 
     /* ---------- Add/Edit habit modal ---------- */
@@ -1308,6 +1419,7 @@
     function toggleDayPickerVisibility() {
       const type = document.querySelector('input[name="freqType"]:checked').value;
       document.getElementById("dayPickerRow").style.display = type === "custom" ? "flex" : "none";
+      document.getElementById("countRow").style.display = type === "count" ? "flex" : "none";
     }
 
     function toggleQuantityRowVisibility() {
@@ -1328,6 +1440,9 @@
       document.getElementById("modalHabitName").value = habit ? habit.name : "";
       document.getElementById("modalCategory").value = habit ? habit.category : "other";
       renderColorGrid(habit ? habit.color : HABIT_COLORS[0]);
+      document.getElementById("modalIcon").value = habit && habit.icon ? habit.icon : "";
+      document.getElementById("modalDescription").value = habit && habit.description ? habit.description : "";
+      document.getElementById("modalReminderTime").value = habit && habit.reminderTime ? habit.reminderTime : "";
 
       const freqType = habit && habit.frequency ? habit.frequency.type : "daily";
       document.querySelector('input[name="freqType"][value="' + freqType + '"]').checked = true;
@@ -1335,6 +1450,8 @@
       document.querySelectorAll(".day-toggle").forEach(function(btn) {
         btn.classList.toggle("selected", selectedDays.includes(parseInt(btn.dataset.day, 10)));
       });
+      document.getElementById("modalCountTarget").value = habit && habit.frequency && habit.frequency.target ? habit.frequency.target : "";
+      document.getElementById("modalCountPeriod").value = habit && habit.frequency && habit.frequency.period === "month" ? "month" : "week";
       toggleDayPickerVisibility();
 
       const goalType = habit ? (habit.goalType || "check") : "check";
@@ -1383,6 +1500,10 @@
       if (freqType === "custom") {
         const days = Array.from(document.querySelectorAll(".day-toggle.selected")).map(b => parseInt(b.dataset.day, 10));
         frequency = { type: "custom", days: days.length ? days : [0,1,2,3,4,5,6] };
+      } else if (freqType === "count") {
+        const target = Math.max(1, parseInt(document.getElementById("modalCountTarget").value, 10) || 1);
+        const period = document.getElementById("modalCountPeriod").value === "month" ? "month" : "week";
+        frequency = { type: "count", target: target, period: period };
       } else {
         frequency = { type: "daily" };
       }
@@ -1390,6 +1511,9 @@
       const goalType = document.querySelector('input[name="goalType"]:checked').value;
       const targetQty = Math.max(1, parseInt(document.getElementById("modalTargetQty").value, 10) || 1);
       const unit = document.getElementById("modalUnit").value.trim();
+      const icon = document.getElementById("modalIcon").value.trim();
+      const description = document.getElementById("modalDescription").value.trim();
+      const reminderTime = document.getElementById("modalReminderTime").value;
 
       if (editingIndex !== null) {
         const habit = habits[editingIndex];
@@ -1398,12 +1522,16 @@
         habit.color = color;
         habit.frequency = frequency;
         habit.goalType = goalType;
+        habit.icon = icon;
+        habit.description = description;
+        habit.reminderTime = reminderTime;
         if (goalType === "quantity") { habit.targetQty = targetQty; habit.unit = unit; }
       } else {
         habits.push({
           name: name, category: category, color: color, frequency: frequency,
           goalType: goalType, targetQty: goalType === "quantity" ? targetQty : undefined,
           unit: goalType === "quantity" ? unit : "", dailyProgress: {},
+          icon: icon, description: description, reminderTime: reminderTime,
           streak: 0, lastDone: null, history: [], badges: [], bestStreak: 0, notes: ""
         });
       }
@@ -1508,7 +1636,7 @@
       const habit = habits[currentDetailIndex];
       if (!habit) return;
 
-      document.getElementById("detailName").textContent = habit.name;
+      document.getElementById("detailName").textContent = (habit.icon ? habit.icon + " " : "") + habit.name + (habit.description ? " — " + habit.description : "");
       document.getElementById("detailStreak").textContent = habit.streak;
       document.getElementById("detailBest").textContent = habit.bestStreak;
       document.getElementById("detailTotal").textContent = habit.history.length;
@@ -1608,6 +1736,10 @@
     }
 
     function recalcHabitStreak(habit) {
+      if (habit.frequency && habit.frequency.type === "count") {
+        recalcCountStreak(habit);
+        return;
+      }
       const today = todayString();
       if (habit.history.length === 0) {
         habit.streak = 0;
@@ -1715,7 +1847,7 @@
         const top = document.createElement("div");
         top.className = "habit-top";
         const text = document.createElement("span");
-        text.innerHTML = "<span class='habit-name'>" + habit.name + "</span><span class='habit-streak'>🔥 " + habit.streak + "</span>";
+        text.innerHTML = "<span class='habit-name'>" + (habit.icon ? habit.icon + " " : "") + habit.name + "</span><span class='habit-streak'>🔥 " + habit.streak + "</span>";
         const actions = document.createElement("div");
         actions.className = "habit-actions";
 
@@ -1744,8 +1876,20 @@
             saveAndRender();
           });
         } else {
-          doneBtn.textContent = habit.lastDone === today ? "Done" : (scheduledToday ? "Done today" : "Rest day");
-          doneBtn.disabled = habit.lastDone === today || !scheduledToday;
+          const isCountFreq = habit.frequency && habit.frequency.type === "count";
+          const doneAlready = habit.lastDone === today;
+          if (isCountFreq) {
+            const period = habit.frequency.period === "month" ? "month" : "week";
+            const target = habit.frequency.target || 1;
+            const periodProgress = getPeriodCount(habit, getPeriodKey(today, period), period);
+            doneBtn.textContent = doneAlready
+              ? "Done (" + periodProgress + "/" + target + ")"
+              : "+1 (" + periodProgress + "/" + target + ")";
+            doneBtn.disabled = doneAlready;
+          } else {
+            doneBtn.textContent = doneAlready ? "Done" : (scheduledToday ? "Done today" : "Rest day");
+            doneBtn.disabled = doneAlready || !scheduledToday;
+          }
           doneBtn.addEventListener("click", function() {
             habit.streak++;
             habit.lastDone = today;
@@ -1790,7 +1934,7 @@
         const meta = document.createElement("div");
         meta.className = "habit-meta";
         meta.innerHTML = "<span class='meta-dot' style='background:" + habit.color + "'></span>" +
-          "<span>" + cat.icon + " " + cat.label + " · " + frequencyLabel(habit) + "</span>";
+          "<span>" + cat.icon + " " + cat.label + " · " + frequencyLabel(habit) + (habit.description ? " · " + habit.description : "") + "</span>";
         li.appendChild(meta);
 
         list.appendChild(li);
