@@ -310,6 +310,8 @@
       <button id="addBtn" class="add-habit-btn">+ Add Habit</button>
       <ul id="habitList"></ul>
       <p class="empty" id="emptyMsg">No habits yet — add one to get started.</p>
+      <div class="section-label">Archived</div>
+      <div id="archivedList"></div>
     </div>
 
     <div class="page" id="page-detail">
@@ -482,6 +484,7 @@
       if (!h.frequency) h.frequency = { type: "daily" };
       if (!h.goalType) h.goalType = "check";
       if (!h.dailyProgress) h.dailyProgress = {};
+      if (h.archived === undefined) h.archived = false;
     });
 
     let totalXP = parseInt(localStorage.getItem("totalXP") || "0", 10);
@@ -617,8 +620,9 @@
       const container = document.getElementById("journalList");
       const emptyMsg = document.getElementById("journalEmpty");
       container.innerHTML = "";
-      emptyMsg.style.display = habits.length === 0 ? "block" : "none";
-      habits.forEach(function(habit) {
+      const activeHabits = habits.filter(h => !h.archived);
+      emptyMsg.style.display = activeHabits.length === 0 ? "block" : "none";
+      activeHabits.forEach(function(habit) {
         const card = document.createElement("div");
         card.className = "stat-habit";
         const name = document.createElement("div");
@@ -732,6 +736,7 @@
           if (!h.frequency) h.frequency = { type: "daily" };
           if (!h.goalType) h.goalType = "check";
           if (!h.dailyProgress) h.dailyProgress = {};
+      if (h.archived === undefined) h.archived = false;
         });
         totalXP = typeof data.totalXP === "number" ? data.totalXP : 0;
         localStorage.setItem("totalXP", String(totalXP));
@@ -828,7 +833,7 @@
     function isPublic() { return localStorage.getItem("leaguePublicOptIn") === "true"; }
 
     function getBestStreak() {
-      return habits.reduce((max, h) => Math.max(max, h.streak || 0), 0);
+      return habits.filter(h => !h.archived).reduce((max, h) => Math.max(max, h.streak || 0), 0);
     }
 
     function syncPlayerDoc() {
@@ -1041,6 +1046,7 @@
           if (!h.frequency) h.frequency = { type: "daily" };
           if (!h.goalType) h.goalType = "check";
           if (!h.dailyProgress) h.dailyProgress = {};
+      if (h.archived === undefined) h.archived = false;
         });
         totalXP = typeof data.totalXP === "number" ? data.totalXP : 0;
         localStorage.setItem("totalXP", String(totalXP));
@@ -1393,13 +1399,15 @@
       const list = document.getElementById("habitList");
       const emptyMsg = document.getElementById("emptyMsg");
       list.innerHTML = "";
-      emptyMsg.style.display = habits.length === 0 ? "block" : "none";
+      const visibleCount = habits.filter(h => !h.archived).length;
+      emptyMsg.style.display = visibleCount === 0 ? "block" : "none";
       const today = todayString();
 
-      document.getElementById("heroStreak").textContent = habits.reduce((max, h) => Math.max(max, h.streak), 0);
+      document.getElementById("heroStreak").textContent = habits.filter(h => !h.archived).reduce((max, h) => Math.max(max, h.streak), 0);
       renderLevel();
 
       habits.forEach(function(habit, index) {
+        if (habit.archived) return;
         if (habit.lastDone) {
           if (habit.frequency && habit.frequency.type === "custom") {
             if (hasMissedScheduledDay(habit, habit.lastDone, today)) habit.streak = 0;
@@ -1470,10 +1478,14 @@
         shareBtn.addEventListener("click", function() { shareStreak(habit); });
 
         const deleteBtn = document.createElement("button");
-        deleteBtn.textContent = "🗑️";
+        deleteBtn.textContent = "📦";
+        deleteBtn.title = "Archive";
         deleteBtn.className = "icon-btn";
-        deleteBtn.addEventListener("click", function() {
-          habits.splice(index, 1);
+        deleteBtn.addEventListener("click", function(e) {
+          e.stopPropagation();
+          const confirmed = confirm("Archive \"" + habit.name + "\"? Your history stays intact and you can restore it later from the Archived section.");
+          if (!confirmed) return;
+          habit.archived = true;
           saveAndRender();
         });
 
@@ -1497,17 +1509,67 @@
       localStorage.setItem("habits", JSON.stringify(habits));
       syncPlayerDoc();
       syncToCloud();
+      renderArchived();
+    }
+
+    function renderArchived() {
+      const container = document.getElementById("archivedList");
+      if (!container) return;
+      const archived = habits.filter(h => h.archived);
+      if (archived.length === 0) {
+        container.innerHTML = "<p class='empty' style='margin:8px 0;'>No archived habits.</p>";
+        return;
+      }
+      container.innerHTML = "";
+      archived.forEach(function(habit) {
+        const row = document.createElement("div");
+        row.className = "league-card";
+        const name = document.createElement("span");
+        name.textContent = habit.name;
+        const actions = document.createElement("div");
+        actions.style.display = "flex";
+        actions.style.gap = "6px";
+
+        const restoreBtn = document.createElement("button");
+        restoreBtn.textContent = "♻️ Restore";
+        restoreBtn.className = "icon-btn";
+        restoreBtn.addEventListener("click", function(e) {
+          e.stopPropagation();
+          habit.archived = false;
+          saveAndRender();
+        });
+
+        const wipeBtn = document.createElement("button");
+        wipeBtn.textContent = "🗑️";
+        wipeBtn.title = "Delete forever";
+        wipeBtn.className = "icon-btn";
+        wipeBtn.addEventListener("click", function(e) {
+          e.stopPropagation();
+          const confirmed = confirm("Permanently delete \"" + habit.name + "\"? This can't be undone.");
+          if (!confirmed) return;
+          const realIndex = habits.indexOf(habit);
+          if (realIndex !== -1) habits.splice(realIndex, 1);
+          saveAndRender();
+        });
+
+        actions.appendChild(restoreBtn);
+        actions.appendChild(wipeBtn);
+        row.appendChild(name);
+        row.appendChild(actions);
+        container.appendChild(row);
+      });
     }
 
     function renderStats() {
       const container = document.getElementById("statsList");
       container.innerHTML = "";
-      if (habits.length === 0) {
+      const activeHabits = habits.filter(h => !h.archived);
+      if (activeHabits.length === 0) {
         container.innerHTML = "<p class='empty'>Add habits on the Home tab to see stats here.</p>";
         return;
       }
       const week = last7Days();
-      habits.forEach(function(habit) {
+      activeHabits.forEach(function(habit) {
         const card = document.createElement("div");
         card.className = "stat-habit";
         const name = document.createElement("div");
