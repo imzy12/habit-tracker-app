@@ -155,6 +155,16 @@
     .league-card { display: flex; justify-content: space-between; align-items: center; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px; margin-bottom: 8px; cursor: pointer; color: var(--text); font-size: 14px; }
     .league-code { color: var(--text-muted); font-family: 'Space Grotesk', sans-serif; font-size: 12px; }
 
+    .hub-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 24px; }
+    .hub-tile {
+      background: var(--surface); border: 1px solid var(--line); border-radius: 16px;
+      padding: 22px 14px; text-align: center; cursor: pointer; color: var(--text);
+      font-family: 'Inter', sans-serif; display: flex; flex-direction: column; align-items: center; gap: 8px;
+    }
+    .hub-tile:active { transform: scale(0.97); background: var(--surface-2); }
+    .hub-tile .hub-icon { font-size: 26px; }
+    .hub-tile .hub-label { font-size: 13px; font-weight: 600; }
+
     .bottom-nav {
       position: fixed; bottom: 0; left: 0; right: 0; background: var(--bg);
       border-top: 1px solid var(--line); display: flex; justify-content: space-around; padding: 12px 0 16px 0;
@@ -284,6 +294,19 @@
         </div>
       </div>
 
+      <div class="section-label">Explore</div>
+      <div class="hub-grid">
+        <button class="hub-tile" data-hub="habits"><span class="hub-icon">📋</span><span class="hub-label">Habits</span></button>
+        <button class="hub-tile" data-hub="stats"><span class="hub-icon">📊</span><span class="hub-label">Stats</span></button>
+        <button class="hub-tile" data-hub="leagues"><span class="hub-icon">🏆</span><span class="hub-label">Leagues</span></button>
+        <button class="hub-tile" data-hub="badges"><span class="hub-icon">🏅</span><span class="hub-label">Badges</span></button>
+        <button class="hub-tile" data-hub="journal"><span class="hub-icon">📓</span><span class="hub-label">Journal</span></button>
+        <button class="hub-tile" data-hub="settings"><span class="hub-icon">⚙️</span><span class="hub-label">Settings</span></button>
+      </div>
+    </div>
+
+    <div class="page" id="page-habits">
+      <div class="top-bar"><button class="back-btn" id="habitsBackBtn">← Back</button></div>
       <button id="addBtn" class="add-habit-btn">+ Add Habit</button>
       <ul id="habitList"></ul>
       <p class="empty" id="emptyMsg">No habits yet — add one to get started.</p>
@@ -319,10 +342,20 @@
         </div>
         <div id="heatmapContainer"></div>
       </div>
-      <div class="section-label">Achievements</div>
-      <div class="badge-grid" id="badgeGrid"></div>
       <div class="section-label">This week</div>
       <div id="statsList"></div>
+    </div>
+
+    <div class="page" id="page-badges">
+      <div class="top-bar"><button class="back-btn" id="badgesBackBtn">← Back</button></div>
+      <div class="section-label">Achievements</div>
+      <div class="badge-grid" id="badgeGrid"></div>
+    </div>
+
+    <div class="page" id="page-journal">
+      <div class="top-bar"><button class="back-btn" id="journalBackBtn">← Back</button></div>
+      <div id="journalList"></div>
+      <p class="empty" id="journalEmpty">No habits yet — add one to start journaling.</p>
     </div>
 
     <div class="page" id="page-leagues">
@@ -536,7 +569,7 @@
         document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
         btn.classList.add("active");
         showPage("page-" + btn.dataset.page);
-        if (btn.dataset.page === "stats") { renderStats(); renderBadges(); renderHeatmap(); }
+        if (btn.dataset.page === "stats") { renderStats(); renderHeatmap(); }
         if (btn.dataset.page === "leagues") { closeLeagueDetail(); syncPlayerDoc().then(renderPublicLeaderboard); renderMyLeagues(); }
       });
     });
@@ -544,9 +577,62 @@
     document.getElementById("backBtn").addEventListener("click", function() {
       document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
       document.querySelector('.nav-btn[data-page="home"]').classList.add("active");
-      showPage("page-home");
+      showPage("page-habits");
       renderHabits();
     });
+
+    /* ---------- Dashboard hub tiles ---------- */
+
+    function openHubPage(pageId, onOpen) {
+      document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
+      document.querySelector('.nav-btn[data-page="home"]').classList.add("active");
+      showPage(pageId);
+      if (onOpen) onOpen();
+    }
+
+    document.querySelectorAll(".hub-tile").forEach(function(tile) {
+      tile.addEventListener("click", function() {
+        const target = tile.dataset.hub;
+        if (target === "stats" || target === "leagues" || target === "settings") {
+          document.querySelector('.nav-btn[data-page="' + target + '"]').click();
+        } else if (target === "habits") {
+          openHubPage("page-habits", renderHabits);
+        } else if (target === "badges") {
+          openHubPage("page-badges", renderBadges);
+        } else if (target === "journal") {
+          openHubPage("page-journal", renderJournal);
+        }
+      });
+    });
+
+    document.getElementById("habitsBackBtn").addEventListener("click", function() { showPage("page-home"); });
+    document.getElementById("badgesBackBtn").addEventListener("click", function() { showPage("page-home"); });
+    document.getElementById("journalBackBtn").addEventListener("click", function() { showPage("page-home"); });
+
+    function renderJournal() {
+      const container = document.getElementById("journalList");
+      const emptyMsg = document.getElementById("journalEmpty");
+      container.innerHTML = "";
+      emptyMsg.style.display = habits.length === 0 ? "block" : "none";
+      habits.forEach(function(habit) {
+        const card = document.createElement("div");
+        card.className = "stat-habit";
+        const name = document.createElement("div");
+        name.className = "name";
+        name.textContent = habit.name;
+        const textarea = document.createElement("textarea");
+        textarea.placeholder = "Why does this habit matter to you?";
+        textarea.value = habit.notes || "";
+        textarea.style.cssText = "width:100%;min-height:70px;padding:12px;border-radius:10px;border:1px solid var(--line);font-family:'Inter',sans-serif;font-size:14px;resize:vertical;background:var(--surface-2);color:var(--text);margin-top:8px;box-sizing:border-box;";
+        textarea.addEventListener("input", function() {
+          habit.notes = textarea.value;
+          localStorage.setItem("habits", JSON.stringify(habits));
+        });
+        card.appendChild(name);
+        card.appendChild(textarea);
+        container.appendChild(card);
+      });
+    }
 
     document.querySelectorAll(".heatmap-tab").forEach(function(tab) {
       tab.addEventListener("click", function() {
