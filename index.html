@@ -390,20 +390,20 @@
     </div>
 
     <div class="onboard-step" id="onboardStep3">
-      <div class="emoji">🌱</div>
-      <h1>What brings you here?</h1>
+      <div class="emoji">🔥</div>
+      <h1>What are you here to build?</h1>
       <div class="onboard-options" id="onboardQ1"></div>
     </div>
 
     <div class="onboard-step" id="onboardStep4">
       <div class="emoji">🕒</div>
-      <h1>How would you describe yourself?</h1>
+      <h1>Which one sounds like you?</h1>
       <div class="onboard-options" id="onboardQ2"></div>
     </div>
 
     <div class="onboard-step" id="onboardStep5">
       <div class="emoji">🎯</div>
-      <h1>What's your biggest challenge?</h1>
+      <h1>What usually gets in the way?</h1>
       <div class="onboard-options" id="onboardQ3"></div>
     </div>
 
@@ -447,7 +447,7 @@
         <div class="mood-options" id="moodOptions"></div>
       </div>
 
-      <div class="section-label">Explore</div>
+      <div class="section-label">Menu</div>
       <div class="hub-grid">
         <button class="hub-tile" data-hub="habits"><span class="hub-icon">📋</span><span class="hub-label">Habits</span></button>
         <button class="hub-tile" data-hub="stats"><span class="hub-icon">📊</span><span class="hub-label">Stats</span></button>
@@ -455,7 +455,7 @@
         <button class="hub-tile" data-hub="badges"><span class="hub-icon">🏅</span><span class="hub-label">Badges</span></button>
         <button class="hub-tile" data-hub="journal"><span class="hub-icon">📓</span><span class="hub-label">Journal</span></button>
         <button class="hub-tile" data-hub="settings"><span class="hub-icon">⚙️</span><span class="hub-label">Settings</span></button>
-        <button class="hub-tile" data-hub="premium"><span class="hub-icon">⭐</span><span class="hub-label">Premium</span></button>
+        <button class="hub-tile" data-hub="premium"><span class="hub-icon">⚡</span><span class="hub-label">Go Premium</span></button>
       </div>
     </div>
 
@@ -539,9 +539,9 @@
       </div>
       <div class="section-label">What you get</div>
       <ul class="premium-features">
-        <li>Unlimited habits (free plan is capped at 3)</li>
-        <li>Private &amp; public Leagues with friends</li>
-        <li>Journal — all your habit notes in one place</li>
+        <li>Unlimited habits — stop hitting the wall at 3</li>
+        <li>Leagues — race your streaks against friends, privately or on the public board</li>
+        <li>Journal — reflect on any habit without digging through tabs</li>
       </ul>
       <a id="buyPremiumBtn" class="primaryBtn" style="display:block; text-align:center; padding:14px; margin:20px 0 12px 0; text-decoration:none;" href="#" target="_blank" rel="noopener">Buy Premium</a>
       <div class="section-label">Already paid?</div>
@@ -813,22 +813,22 @@
     }
 
     const ONBOARD_Q1_OPTIONS = [
-      { icon: "🌱", label: "Build better habits" },
-      { icon: "🚀", label: "Boost productivity" },
-      { icon: "🧘", label: "Improve mindset" },
-      { icon: "🎯", label: "Stay consistent" }
+      { icon: "🔥", label: "A streak that actually sticks" },
+      { icon: "🚀", label: "More output, less drag" },
+      { icon: "🧘", label: "A calmer, steadier mind" },
+      { icon: "🎯", label: "Consistency, finally" }
     ];
     const ONBOARD_Q2_OPTIONS = [
-      { icon: "🌅", label: "Early bird" },
+      { icon: "🌅", label: "Early riser" },
       { icon: "🌙", label: "Night owl" },
-      { icon: "📋", label: "Planner" },
-      { icon: "🎲", label: "Spontaneous" }
+      { icon: "📋", label: "Planner, always" },
+      { icon: "🎲", label: "Wing it and adjust" }
     ];
     const ONBOARD_Q3_OPTIONS = [
-      { icon: "⏰", label: "Finding time" },
-      { icon: "💪", label: "Staying motivated" },
-      { icon: "🧠", label: "Remembering" },
-      { icon: "😅", label: "Getting started" }
+      { icon: "⏰", label: "No time in the day" },
+      { icon: "💪", label: "Motivation fades fast" },
+      { icon: "🧠", label: "I just forget" },
+      { icon: "😅", label: "Starting is the hard part" }
     ];
 
     let onboardAnswers = { goal: null, style: null, challenge: null };
@@ -862,9 +862,9 @@
       const name = localStorage.getItem("userName") || "there";
       document.getElementById("onboardSummaryName").textContent = "Nice to meet you, " + name + "!";
       document.getElementById("onboardSummaryText").textContent =
-        "You're here to " + (onboardAnswers.goal || "build better habits").toLowerCase() +
-        ", you're more of a " + (onboardAnswers.style || "planner").toLowerCase() +
-        ", and your biggest challenge is usually " + (onboardAnswers.challenge || "getting started").toLowerCase() + ". Let's get started.";
+        "You want " + (onboardAnswers.goal || "a streak that actually sticks").toLowerCase() +
+        ", you're a " + (onboardAnswers.style || "planner, always").toLowerCase() +
+        ", and " + (onboardAnswers.challenge || "starting is the hard part").toLowerCase() + " tends to get in your way. Let's get started.";
       localStorage.setItem("onboardAnswers", JSON.stringify(onboardAnswers));
       showOnboardStep("onboardStep6");
     }
