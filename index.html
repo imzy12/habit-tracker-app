@@ -62,6 +62,19 @@
     }
     .onboard-option.selected { border-color: var(--flame-1); background: var(--surface-2); box-shadow: 0 0 0 1px var(--flame-1) inset; }
     .dashboard-greeting { font-size: 15px; font-weight: 600; color: var(--text); padding-top: 4px; }
+    .mood-card { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 16px 18px; margin-bottom: 24px; text-align: center; }
+    .mood-question { font-size: 13px; color: var(--text-muted); margin-bottom: 10px; font-weight: 600; }
+    .mood-options { display: flex; justify-content: center; gap: 10px; }
+    .mood-btn {
+      font-size: 24px; background: var(--surface-2); border: 2px solid transparent; border-radius: 50%;
+      width: 46px; height: 46px; display: flex; align-items: center; justify-content: center; cursor: pointer;
+      padding: 0; font-family: 'Inter', sans-serif;
+    }
+    .mood-btn.selected { border-color: var(--flame-1); background: var(--surface); }
+    .mood-cell {
+      width: 20px; height: 20px; margin: 3px auto; border-radius: 6px; background: var(--surface-2);
+      display: flex; align-items: center; justify-content: center; font-size: 13px; cursor: pointer;
+    }
 
     #app { display: none; padding: 24px 18px 100px 18px; max-width: 420px; margin: 0 auto; }
     .page { display: none; }
@@ -367,6 +380,11 @@
         </div>
       </div>
 
+      <div class="mood-card" id="moodCard">
+        <div class="mood-question" id="moodQuestion">How are you feeling today?</div>
+        <div class="mood-options" id="moodOptions"></div>
+      </div>
+
       <div class="section-label">Explore</div>
       <div class="hub-grid">
         <button class="hub-tile" data-hub="habits"><span class="hub-icon">📋</span><span class="hub-label">Habits</span></button>
@@ -431,6 +449,8 @@
         </div>
         <div id="heatmapContainer"></div>
       </div>
+      <div class="section-label">Mood</div>
+      <div class="week-row" id="moodWeekRow" style="margin-bottom:20px;"></div>
       <div class="section-label">This week</div>
       <div id="statsList"></div>
     </div>
@@ -797,6 +817,76 @@
     }
     updateGreeting();
 
+    /* ---------- Mood tagging (separate from habit check-in, never blocks it) ---------- */
+
+    const MOOD_OPTIONS = ["😊", "😐", "😞", "😣", "😴"];
+
+    function getMoodLog() {
+      return JSON.parse(localStorage.getItem("moodLog") || "{}");
+    }
+    function setMoodForDate(dateStr, emoji) {
+      const log = getMoodLog();
+      log[dateStr] = emoji;
+      localStorage.setItem("moodLog", JSON.stringify(log));
+    }
+
+    function renderMoodCard() {
+      const today = todayString();
+      const log = getMoodLog();
+      const options = document.getElementById("moodOptions");
+      const question = document.getElementById("moodQuestion");
+      if (!options || !question) return;
+      options.innerHTML = "";
+      MOOD_OPTIONS.forEach(function(emoji) {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "mood-btn" + (log[today] === emoji ? " selected" : "");
+        btn.textContent = emoji;
+        btn.addEventListener("click", function() {
+          setMoodForDate(today, emoji);
+          renderMoodCard();
+          renderMoodWeek();
+        });
+        options.appendChild(btn);
+      });
+      question.textContent = log[today] ? "Today's mood: " + log[today] : "How are you feeling today?";
+    }
+
+    function cycleMood(dateStr) {
+      const log = getMoodLog();
+      const current = log[dateStr];
+      const idx = MOOD_OPTIONS.indexOf(current);
+      const next = (idx === -1) ? MOOD_OPTIONS[0] : (idx + 1 < MOOD_OPTIONS.length ? MOOD_OPTIONS[idx + 1] : null);
+      if (next === null) { delete log[dateStr]; } else { log[dateStr] = next; }
+      localStorage.setItem("moodLog", JSON.stringify(log));
+      renderMoodWeek();
+      if (dateStr === todayString()) renderMoodCard();
+    }
+
+    function renderMoodWeek() {
+      const container = document.getElementById("moodWeekRow");
+      if (!container) return;
+      container.innerHTML = "";
+      const week = last7Days();
+      const log = getMoodLog();
+      week.forEach(function(dateStr) {
+        const dayDiv = document.createElement("div");
+        dayDiv.className = "day-dot";
+        const label = document.createElement("div");
+        label.textContent = dayLabels[new Date(dateStr).getDay()];
+        const cell = document.createElement("div");
+        cell.className = "mood-cell";
+        cell.textContent = log[dateStr] || "";
+        cell.title = "Tap to set mood for " + dateStr;
+        cell.addEventListener("click", function() { cycleMood(dateStr); });
+        dayDiv.appendChild(label);
+        dayDiv.appendChild(cell);
+        container.appendChild(dayDiv);
+      });
+    }
+
+    renderMoodCard();
+
     document.querySelectorAll(".nav-btn").forEach(function(btn) {
       btn.addEventListener("click", function() {
         if (btn.dataset.page === "leagues" && !isPremiumUser()) {
@@ -806,7 +896,7 @@
         document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
         btn.classList.add("active");
         showPage("page-" + btn.dataset.page);
-        if (btn.dataset.page === "stats") { renderStats(); renderHeatmap(); }
+        if (btn.dataset.page === "stats") { renderStats(); renderHeatmap(); renderMoodWeek(); }
         if (btn.dataset.page === "leagues") { closeLeagueDetail(); syncPlayerDoc().then(renderPublicLeaderboard); renderMyLeagues(); }
       });
     });
