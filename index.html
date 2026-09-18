@@ -234,6 +234,20 @@
     .premium-features { list-style: none; padding: 0; margin: 0; }
     .premium-features li { padding: 10px 4px; border-bottom: 1px solid var(--line); font-size: 14px; color: var(--text); }
     .premium-features li::before { content: "✓ "; color: var(--flame-1); font-weight: 700; }
+    .pricing-options { display: flex; gap: 10px; margin-bottom: 8px; }
+    .pricing-card {
+      flex: 1; background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
+      padding: 18px 12px 14px 12px; text-align: center; box-shadow: var(--card-shadow-sm); position: relative;
+    }
+    .pricing-card.featured { border-color: var(--flame-1); box-shadow: var(--card-shadow), 0 0 24px -12px var(--flame-1); }
+    .pricing-badge {
+      position: absolute; top: -10px; left: 50%; transform: translateX(-50%); background: var(--flame-grad);
+      color: white; font-size: 10px; font-weight: 700; padding: 3px 10px; border-radius: 100px; white-space: nowrap;
+    }
+    .pricing-label { font-size: 12px; color: var(--text-muted); font-weight: 600; margin-bottom: 4px; }
+    .pricing-amount { font-size: 24px; font-weight: 700; font-family: 'Space Grotesk', sans-serif; color: var(--text); }
+    .pricing-sub { font-size: 11px; color: var(--text-muted); margin-bottom: 12px; }
+    .pricing-btn { display: block; text-decoration: none; padding: 10px; font-size: 13px; }
 
     .calendar-card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px; margin-bottom: 20px; box-shadow: var(--card-shadow-sm); }
     .calendar-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-weight: 600; font-size: 14px; color: var(--text); }
@@ -543,7 +557,23 @@
         <li>Leagues — race your streaks against friends, privately or on the public board</li>
         <li>Journal — reflect on any habit without digging through tabs</li>
       </ul>
-      <a id="buyPremiumBtn" class="primaryBtn" style="display:block; text-align:center; padding:14px; margin:20px 0 12px 0; text-decoration:none;" href="#" target="_blank" rel="noopener">Buy Premium</a>
+      <div class="section-label">Choose a plan</div>
+      <div class="pricing-options">
+        <div class="pricing-card">
+          <div class="pricing-label">Monthly</div>
+          <div class="pricing-amount" id="priceMonthly">£3.99</div>
+          <div class="pricing-sub">per month</div>
+          <a id="buyMonthlyBtn" class="primaryBtn pricing-btn" href="#" target="_blank" rel="noopener">Subscribe</a>
+        </div>
+        <div class="pricing-card featured">
+          <div class="pricing-badge">Best value</div>
+          <div class="pricing-label">One-time</div>
+          <div class="pricing-amount" id="priceOnce">£20</div>
+          <div class="pricing-sub">pay once, unlock forever</div>
+          <a id="buyOnceBtn" class="primaryBtn pricing-btn" href="#" target="_blank" rel="noopener">Buy once</a>
+        </div>
+      </div>
+      <p style="font-size:11px; color:var(--text-muted); text-align:center; margin:-10px 0 16px 0;">Prices are estimated in your local currency. You'll see the exact amount at checkout.</p>
       <div class="section-label">Already paid?</div>
       <div class="input-row">
         <input type="text" id="redeemCodeInput" class="modal-input" placeholder="Enter your code" style="flex:1;">
@@ -734,9 +764,44 @@
     let habitCategoryFilter = "all";
 
     const FREE_HABIT_LIMIT = 3;
-    const STRIPE_PAYMENT_LINK = "https://buy.stripe.com/REPLACE_WITH_YOUR_PAYMENT_LINK";
+    const STRIPE_MONTHLY_LINK = "https://buy.stripe.com/REPLACE_WITH_YOUR_MONTHLY_LINK";
+    const STRIPE_ONCE_LINK = "https://buy.stripe.com/REPLACE_WITH_YOUR_ONE_TIME_LINK";
+    const PRICE_BASE_GBP = { monthly: 3.99, once: 20 };
+    const CURRENCY_RATES = {
+      GBP: { symbol: "£", rate: 1 },
+      USD: { symbol: "$", rate: 1.27 },
+      EUR: { symbol: "€", rate: 1.17 },
+      CAD: { symbol: "CA$", rate: 1.72 },
+      AUD: { symbol: "AU$", rate: 1.93 }
+    };
     function isPremiumUser() { return localStorage.getItem("isPremium") === "true"; }
     let editingIndex = null;
+
+    function detectCurrency() {
+      const locale = navigator.language || "en-GB";
+      if (locale.endsWith("-US")) return "USD";
+      if (locale.endsWith("-GB")) return "GBP";
+      if (locale.endsWith("-CA")) return "CAD";
+      if (locale.endsWith("-AU")) return "AUD";
+      const euroLangs = ["de","fr","es","it","nl","pt","ie","fi","el","at","be","pl"];
+      if (euroLangs.includes(locale.split("-")[0])) return "EUR";
+      return "USD";
+    }
+
+    function formatPrice(amountGBP) {
+      const info = CURRENCY_RATES[detectCurrency()] || CURRENCY_RATES.USD;
+      const converted = amountGBP * info.rate;
+      const display = converted < 10 ? converted.toFixed(2) : Math.round(converted);
+      return info.symbol + display;
+    }
+
+    function renderPricing() {
+      const monthlyEl = document.getElementById("priceMonthly");
+      const onceEl = document.getElementById("priceOnce");
+      if (monthlyEl) monthlyEl.textContent = formatPrice(PRICE_BASE_GBP.monthly);
+      if (onceEl) onceEl.textContent = formatPrice(PRICE_BASE_GBP.once);
+    }
+    renderPricing();
 
     const BADGE_LEVELS = [
       { days: 3, icon: "🔥", label: "3 Day Spark" },
@@ -1037,10 +1102,15 @@
       const premium = isPremiumUser();
       const statusEl = document.getElementById("premiumStatusText");
       if (statusEl) statusEl.textContent = premium ? "You're Premium ✨ — thank you!" : "You're on the Free plan";
-      const buyBtn = document.getElementById("buyPremiumBtn");
-      if (buyBtn) {
-        buyBtn.href = STRIPE_PAYMENT_LINK;
-        buyBtn.style.display = premium ? "none" : "block";
+      const monthlyBtn = document.getElementById("buyMonthlyBtn");
+      const onceBtn = document.getElementById("buyOnceBtn");
+      if (monthlyBtn) {
+        monthlyBtn.href = STRIPE_MONTHLY_LINK;
+        monthlyBtn.style.display = premium ? "none" : "block";
+      }
+      if (onceBtn) {
+        onceBtn.href = STRIPE_ONCE_LINK;
+        onceBtn.style.display = premium ? "none" : "block";
       }
       document.querySelectorAll(".hub-tile").forEach(function(tile) {
         const target = tile.dataset.hub;
