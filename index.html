@@ -45,14 +45,23 @@
     h1, h2, h3, .num-font { font-family: 'Space Grotesk', sans-serif; }
 
     #onboarding { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; text-align: center; padding: 30px; }
+    .onboard-step { display: none; flex-direction: column; align-items: center; width: 100%; }
+    .onboard-step.active { display: flex; }
     #onboarding .emoji { font-size: 56px; margin-bottom: 14px; }
     #onboarding h1 { font-size: 26px; margin-bottom: 8px; font-weight: 700; }
     #onboarding p { color: var(--text-muted); max-width: 300px; margin-bottom: 32px; line-height: 1.5; }
-    #getStartedBtn {
+    .onboard-btn {
       padding: 14px 32px; border: none; background: var(--flame-grad); color: white;
       border-radius: 100px; font-size: 15px; font-weight: 600; cursor: pointer; font-family: 'Inter', sans-serif;
     }
-    #getStartedBtn:active { transform: scale(0.97); }
+    .onboard-btn:active { transform: scale(0.97); }
+    .onboard-options { display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 280px; }
+    .onboard-option {
+      padding: 14px 16px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface);
+      color: var(--text); font-size: 14px; cursor: pointer; font-family: 'Inter', sans-serif; text-align: left;
+    }
+    .onboard-option.selected { border-color: var(--flame-1); background: var(--surface-2); box-shadow: 0 0 0 1px var(--flame-1) inset; }
+    .dashboard-greeting { font-size: 15px; font-weight: 600; color: var(--text); padding-top: 4px; }
 
     #app { display: none; padding: 24px 18px 100px 18px; max-width: 420px; margin: 0 auto; }
     .page { display: none; }
@@ -293,14 +302,50 @@
 <body>
 
   <div id="onboarding">
-    <div class="emoji">🔥</div>
-    <h1>Habit Tracker</h1>
-    <p>Build daily streaks, track your progress, and stay consistent — all saved right on your device.</p>
-    <button id="getStartedBtn">Get Started</button>
+    <div class="onboard-step active" id="onboardStep1">
+      <div class="emoji">🔥</div>
+      <h1>Habit Tracker</h1>
+      <p>Build daily streaks, track your progress, and stay consistent — all saved right on your device.</p>
+      <button id="onboardNext1" class="onboard-btn">Get Started</button>
+    </div>
+
+    <div class="onboard-step" id="onboardStep2">
+      <div class="emoji">👋</div>
+      <h1>What's your name?</h1>
+      <p>We'll use it to say hi when you open the app.</p>
+      <input type="text" id="onboardNameInput" class="modal-input" placeholder="Your name" style="max-width:260px; text-align:center;">
+      <button id="onboardNext2" class="onboard-btn" style="margin-top:20px;">Continue</button>
+    </div>
+
+    <div class="onboard-step" id="onboardStep3">
+      <div class="emoji">🌱</div>
+      <h1>What brings you here?</h1>
+      <div class="onboard-options" id="onboardQ1"></div>
+    </div>
+
+    <div class="onboard-step" id="onboardStep4">
+      <div class="emoji">🕒</div>
+      <h1>How would you describe yourself?</h1>
+      <div class="onboard-options" id="onboardQ2"></div>
+    </div>
+
+    <div class="onboard-step" id="onboardStep5">
+      <div class="emoji">🎯</div>
+      <h1>What's your biggest challenge?</h1>
+      <div class="onboard-options" id="onboardQ3"></div>
+    </div>
+
+    <div class="onboard-step" id="onboardStep6">
+      <div class="emoji">✨</div>
+      <h1 id="onboardSummaryName"></h1>
+      <p id="onboardSummaryText"></p>
+      <button id="onboardFinishBtn" class="onboard-btn">Enter Habit Tracker</button>
+    </div>
   </div>
 
   <div id="app">
     <div class="page active" id="page-home">
+      <div class="dashboard-greeting" id="userGreeting"></div>
       <div class="hero">
         <div class="hero-num num-font" id="heroStreak">0</div>
         <div class="hero-label">longest active streak</div>
@@ -663,11 +708,94 @@
       onboarding.style.display = "none";
       app.style.display = "block";
     }
-    document.getElementById("getStartedBtn").addEventListener("click", function() {
+
+    const ONBOARD_Q1_OPTIONS = [
+      { icon: "🌱", label: "Build better habits" },
+      { icon: "🚀", label: "Boost productivity" },
+      { icon: "🧘", label: "Improve mindset" },
+      { icon: "🎯", label: "Stay consistent" }
+    ];
+    const ONBOARD_Q2_OPTIONS = [
+      { icon: "🌅", label: "Early bird" },
+      { icon: "🌙", label: "Night owl" },
+      { icon: "📋", label: "Planner" },
+      { icon: "🎲", label: "Spontaneous" }
+    ];
+    const ONBOARD_Q3_OPTIONS = [
+      { icon: "⏰", label: "Finding time" },
+      { icon: "💪", label: "Staying motivated" },
+      { icon: "🧠", label: "Remembering" },
+      { icon: "😅", label: "Getting started" }
+    ];
+
+    let onboardAnswers = { goal: null, style: null, challenge: null };
+
+    function showOnboardStep(stepId) {
+      document.querySelectorAll(".onboard-step").forEach(function(s) { s.classList.remove("active"); });
+      document.getElementById(stepId).classList.add("active");
+    }
+
+    function buildOnboardOptions(containerId, options, answerKey, nextStepId) {
+      const container = document.getElementById(containerId);
+      container.innerHTML = "";
+      options.forEach(function(opt) {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "onboard-option";
+        btn.textContent = opt.icon + " " + opt.label;
+        btn.addEventListener("click", function() {
+          onboardAnswers[answerKey] = opt.icon + " " + opt.label;
+          if (nextStepId) {
+            showOnboardStep(nextStepId);
+          } else {
+            finishOnboardQuiz();
+          }
+        });
+        container.appendChild(btn);
+      });
+    }
+
+    function finishOnboardQuiz() {
+      const name = localStorage.getItem("userName") || "there";
+      document.getElementById("onboardSummaryName").textContent = "Nice to meet you, " + name + "!";
+      document.getElementById("onboardSummaryText").textContent =
+        "You're here to " + (onboardAnswers.goal || "build better habits").toLowerCase() +
+        ", you're more of a " + (onboardAnswers.style || "planner").toLowerCase() +
+        ", and your biggest challenge is usually " + (onboardAnswers.challenge || "getting started").toLowerCase() + ". Let's get started.";
+      localStorage.setItem("onboardAnswers", JSON.stringify(onboardAnswers));
+      showOnboardStep("onboardStep6");
+    }
+
+    buildOnboardOptions("onboardQ1", ONBOARD_Q1_OPTIONS, "goal", "onboardStep4");
+    buildOnboardOptions("onboardQ2", ONBOARD_Q2_OPTIONS, "style", "onboardStep5");
+    buildOnboardOptions("onboardQ3", ONBOARD_Q3_OPTIONS, "challenge", null);
+
+    document.getElementById("onboardNext1").addEventListener("click", function() {
+      showOnboardStep("onboardStep2");
+    });
+
+    document.getElementById("onboardNext2").addEventListener("click", function() {
+      const nameInput = document.getElementById("onboardNameInput");
+      const name = nameInput.value.trim();
+      if (!name) { nameInput.focus(); return; }
+      localStorage.setItem("userName", name);
+      updateGreeting();
+      showOnboardStep("onboardStep3");
+    });
+
+    document.getElementById("onboardFinishBtn").addEventListener("click", function() {
       localStorage.setItem("onboarded", "true");
       onboarding.style.display = "none";
       app.style.display = "block";
     });
+
+    function updateGreeting() {
+      const el = document.getElementById("userGreeting");
+      if (!el) return;
+      const name = localStorage.getItem("userName");
+      el.textContent = name ? "Hi, " + name : "";
+    }
+    updateGreeting();
 
     document.querySelectorAll(".nav-btn").forEach(function(btn) {
       btn.addEventListener("click", function() {
