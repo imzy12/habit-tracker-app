@@ -1,678 +1,2743 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Habit Tracker</title>
-  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
-  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700;12..96,800&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="manifest" href="manifest.json">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <!-- Needed for the Leagues feature (free Firebase Firestore) — see FIREBASE_CONFIG near the top of the <script> below -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
     :root {
-      --bg: #080812;
-      --fg: #f0eeff;
-      --card: #12121e;
-      --card-fg: #e8e4ff;
-      --primary: #7c3aed;
-      --primary-fg: #ffffff;
-      --secondary: #1e1a2e;
-      --secondary-fg: #c4b8ff;
-      --muted: #1a1826;
-      --muted-fg: #6b6488;
-      --accent: #a3e635;
-      --accent-fg: #0a1200;
-      --border: rgba(124,58,237,0.18);
-      --radius: 1rem;
-      --font-display: 'Bricolage Grotesque', sans-serif;
-      --font-body: 'Plus Jakarta Sans', sans-serif;
-      --font-mono: 'JetBrains Mono', monospace;
+      --bg: #14120F;
+      --surface: #1E1B17;
+      --surface-2: #262219;
+      --line: #322D25;
+      --text: #F3EFE8;
+      --text-muted: #948C7E;
+      --flame-1: #FF7A45;
+      --flame-2: #E63946;
+      --amber: #FFC857;
+      --flame-grad: linear-gradient(135deg, var(--flame-1), var(--flame-2));
+      --card-shadow: 0 1px 2px rgba(0,0,0,0.4), 0 10px 28px -10px rgba(0,0,0,0.55);
+      --card-shadow-sm: 0 1px 2px rgba(0,0,0,0.35);
     }
-    html, body, #root {
-      height: 100%;
+    body.light {
+      --bg: #FAF8F4;
+      --surface: #FFFFFF;
+      --surface-2: #F1EDE5;
+      --line: #E7E1D6;
+      --text: #211D17;
+      --text-muted: #85796A;
+      --card-shadow: 0 1px 2px rgba(35,25,15,0.05), 0 10px 28px -10px rgba(35,25,15,0.14);
+      --card-shadow-sm: 0 1px 2px rgba(35,25,15,0.06);
+    }
+    body.light .hero::before { background: radial-gradient(circle, rgba(255,122,69,0.14), rgba(255,122,69,0) 70%); }
+
+    body {
+      font-family: 'Inter', sans-serif;
       background: var(--bg);
-      color: var(--fg);
-      font-family: var(--font-body);
-      -webkit-font-smoothing: antialiased;
+      color: var(--text);
+      margin: 0;
+      min-height: 100vh;
+      transition: background 0.25s, color 0.25s;
     }
-    * { scrollbar-width: none; }
-    *::-webkit-scrollbar { display: none; }
 
-    @keyframes burst {
-      0%   { transform: translate(0,0) scale(1); opacity: 1; }
-      100% { transform: translate(var(--dx),var(--dy)) scale(0); opacity: 0; }
-    }
-    @keyframes slideUp {
-      from { transform: translateY(100%); opacity: 0; }
-      to   { transform: translateY(0);    opacity: 1; }
-    }
-    @keyframes fadeIn {
-      from { opacity: 0; transform: scale(0.97); }
-      to   { opacity: 1; transform: scale(1); }
-    }
-    .slide-up { animation: slideUp 0.35s cubic-bezier(0.34,1.56,0.64,1); }
-    .fade-in  { animation: fadeIn 0.25s ease-out; }
+    h1, h2, h3, .num-font { font-family: 'Space Grotesk', sans-serif; }
 
-    button { cursor: pointer; border: none; background: none; color: inherit; font-family: inherit; }
-    textarea, input {
-      font-family: var(--font-body);
-      color: var(--fg);
-      background: var(--muted);
-      border: 1.5px solid var(--border);
-      border-radius: 12px;
-      outline: none;
+    #onboarding { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; text-align: center; padding: 30px; }
+    .onboard-step { display: none; flex-direction: column; align-items: center; width: 100%; }
+    .onboard-step.active { display: flex; }
+    #onboarding .emoji { font-size: 56px; margin-bottom: 14px; }
+    #onboarding h1 { font-size: 26px; margin-bottom: 8px; font-weight: 700; }
+    #onboarding p { color: var(--text-muted); max-width: 300px; margin-bottom: 32px; line-height: 1.5; }
+    .onboard-btn {
+      padding: 14px 32px; border: none; background: var(--flame-grad); color: white;
+      border-radius: 100px; font-size: 15px; font-weight: 600; cursor: pointer; font-family: 'Inter', sans-serif;
     }
-    textarea:focus, input:focus { border-color: var(--primary); }
+    .onboard-btn:active { transform: scale(0.97); }
+    .onboard-options { display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 280px; }
+    .onboard-option {
+      padding: 14px 16px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface);
+      color: var(--text); font-size: 14px; cursor: pointer; font-family: 'Inter', sans-serif; text-align: left;
+    }
+    .onboard-option.selected { border-color: var(--flame-1); background: var(--surface-2); box-shadow: 0 0 0 1px var(--flame-1) inset; }
+    .dashboard-greeting { font-size: 15px; font-weight: 600; color: var(--text); padding-top: 4px; }
+    .dashboard-top-row { display: flex; justify-content: space-between; align-items: center; }
+    .dashboard-settings-btn { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--text); padding: 4px; line-height: 1; }
+    .dashboard-settings-btn:active { transform: scale(0.92); }
+    .mood-card { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 16px 18px; margin-bottom: 24px; text-align: center; box-shadow: var(--card-shadow); }
+    .mood-question { font-size: 13px; color: var(--text-muted); margin-bottom: 10px; font-weight: 600; }
+    .mood-options { display: flex; justify-content: center; gap: 10px; }
+    .mood-btn {
+      font-size: 24px; background: var(--surface-2); border: 2px solid transparent; border-radius: 50%;
+      width: 46px; height: 46px; display: flex; align-items: center; justify-content: center; cursor: pointer;
+      padding: 0; font-family: 'Inter', sans-serif;
+    }
+    .mood-btn.selected { border-color: var(--flame-1); background: var(--surface); }
+    .mood-cell {
+      width: 20px; height: 20px; margin: 3px auto; border-radius: 6px; background: var(--surface-2);
+      display: flex; align-items: center; justify-content: center; font-size: 13px; cursor: pointer;
+    }
+    .settings-group-label {
+      font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
+      color: var(--text-muted); margin: 24px 4px 8px 4px;
+    }
+    .settings-group-label:first-of-type { margin-top: 8px; }
+    .settings-static { font-size: 13px; color: var(--text-muted); }
+    .settings-link { text-decoration: none; color: var(--text); cursor: pointer; }
+    .settings-chevron { color: var(--text-muted); font-size: 16px; }
+    #page-premium { position: relative; }
+    .premium-close-btn {
+      position: absolute; top: 0; right: 0; background: var(--surface-2); border: none;
+      width: 32px; height: 32px; border-radius: 50%; color: var(--text-muted); font-size: 15px;
+      cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 5;
+    }
+    .premium-close-btn:active { transform: scale(0.92); }
+
+    #app { display: none; padding: 24px 18px 100px 18px; max-width: 420px; margin: 0 auto; }
+    .page { display: none; }
+    .page.active { display: block; }
+
+    .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    .top-bar h2 { font-size: 15px; margin: 0; color: var(--text-muted); font-weight: 500; letter-spacing: 0.3px; }
+    .back-btn { border: none; background: none; font-size: 15px; cursor: pointer; color: var(--text); font-family: 'Inter', sans-serif; padding: 4px 0; }
+
+    .hero { text-align: center; padding: 10px 0 20px 0; position: relative; }
+    .hero::before {
+      content: ""; position: absolute; top: -20px; left: 50%; transform: translateX(-50%);
+      width: 180px; height: 180px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(255,122,69,0.20), rgba(255,122,69,0) 70%);
+      pointer-events: none; z-index: 0;
+    }
+    .hero .hero-num {
+      font-size: 60px; font-weight: 700; line-height: 1; position: relative;
+      background: var(--flame-grad); -webkit-background-clip: text; background-clip: text; color: transparent;
+    }
+    .hero .hero-label { color: var(--text-muted); font-size: 13px; margin-top: 6px; position: relative; }
+
+    /* Level card */
+    .level-card {
+      background: var(--surface); border: 1px solid var(--line); border-radius: 16px;
+      padding: 16px 18px; margin-bottom: 24px;
+      box-shadow: var(--card-shadow), 0 0 40px -18px var(--flame-1);
+      position: relative; overflow: hidden;
+    }
+    .level-card::before {
+      content: ""; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: var(--flame-grad);
+    }
+    .level-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .level-left { display: flex; align-items: center; gap: 10px; }
+    .level-badge {
+      width: 40px; height: 40px; border-radius: 50%; background: var(--flame-grad);
+      display: flex; align-items: center; justify-content: center; font-weight: 700; color: white;
+      font-family: 'Space Grotesk', sans-serif; font-size: 15px; flex-shrink: 0;
+    }
+    .level-name { font-weight: 600; font-size: 14px; }
+    .level-title { font-size: 11px; color: var(--text-muted); }
+    .level-xp-text { font-size: 11px; color: var(--text-muted); white-space: nowrap; }
+    .level-progress-track { height: 8px; border-radius: 6px; background: var(--surface-2); overflow: hidden; }
+    .level-progress-fill { height: 100%; background: var(--flame-grad); border-radius: 6px; transition: width 0.3s; }
+
+    .add-habit-btn {
+      width: 100%; padding: 14px 16px; border: 1px dashed var(--line); border-radius: 12px;
+      font-size: 15px; font-weight: 600; cursor: pointer; font-family: 'Inter', sans-serif;
+      background: var(--surface); color: var(--text); margin-bottom: 24px;
+    }
+    .add-habit-btn:active { transform: scale(0.98); }
+
+    #habitList { list-style: none; padding: 0; margin: 0; border-top: 1px solid var(--line); }
+    #habitList li {
+      background: var(--surface); padding: 16px 14px; border-bottom: 1px solid var(--line);
+      border-left: 3px solid var(--line); font-size: 15px; cursor: pointer; transition: border-color 0.2s;
+    }
+    #habitList li.tier-1 { border-left-color: var(--amber); }
+    #habitList li.tier-2 { border-left-color: var(--flame-1); }
+    #habitList li.tier-3 { border-left-color: var(--flame-2); }
+
+    .habit-top { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
+    .habit-name { font-weight: 500; }
+    .habit-streak { color: var(--text-muted); font-size: 13px; margin-left: 6px; font-family: 'Space Grotesk', sans-serif; }
+    .habit-actions { display: flex; gap: 4px; align-items: center; }
+    .habit-meta { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-muted); margin-top: 8px; }
+    .meta-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+
+    .icon-btn {
+      border: none; background: none; cursor: pointer; font-size: 15px; padding: 8px;
+      border-radius: 8px; color: var(--text-muted); line-height: 1;
+    }
+    .icon-btn:active { background: var(--surface-2); }
+
+    .primaryBtn {
+      border: none; padding: 8px 14px; border-radius: 100px; font-size: 13px; font-weight: 600;
+      background: var(--flame-grad); color: white; cursor: pointer; font-family: 'Inter', sans-serif;
+    }
+    .primaryBtn:disabled { background: var(--surface-2); color: var(--text-muted); }
+    .primaryBtn:active { transform: scale(0.96); }
+
+    .empty { color: var(--text-muted); font-size: 14px; margin-top: 24px; text-align: center; }
+    .empty-state { display: none; text-align: center; padding: 48px 20px; color: var(--text-muted); }
+    .empty-state-icon { font-size: 40px; margin-bottom: 12px; opacity: 0.85; }
+    .empty-state-title { font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+    .empty-state-text { font-size: 13px; line-height: 1.5; max-width: 240px; margin: 0 auto; }
+
+    .stat-habit { background: var(--surface); border-radius: 14px; padding: 16px; margin-bottom: 10px; border: 1px solid var(--line); box-shadow: var(--card-shadow-sm); }
+    .stat-habit .name { font-weight: 500; margin-bottom: 10px; font-size: 14px; }
+    .week-row { display: flex; gap: 6px; justify-content: space-between; }
+    .day-dot { flex: 1; text-align: center; font-size: 10px; color: var(--text-muted); }
+    .day-dot .circle { width: 20px; height: 20px; margin: 3px auto; border-radius: 6px; background: var(--surface-2); }
+    .day-dot .circle.done { background: var(--flame-grad); }
+
+    .setting-row {
+      display: flex; justify-content: space-between; align-items: center; padding: 16px 4px;
+      border-bottom: 1px solid var(--line); font-size: 14px;
+    }
+    .setting-row button, .setting-row input {
+      padding: 7px 12px; border-radius: 8px; border: 1px solid var(--line); font-size: 13px;
+      background: var(--surface); color: var(--text); font-family: 'Inter', sans-serif;
+    }
+    #themeToggle { border: none; background: var(--flame-grad); color: white; cursor: pointer; font-weight: 600; }
+    .import-label {
+      padding: 7px 12px; border-radius: 8px; border: 1px solid var(--line); font-size: 13px;
+      background: var(--surface); color: var(--text); font-family: 'Inter', sans-serif; cursor: pointer; display: inline-block;
+    }
+    .import-label:active { background: var(--surface-2); }
+
+    .leader-row { display: flex; align-items: center; gap: 10px; padding: 12px 4px; border-bottom: 1px solid var(--line); font-size: 14px; color: var(--text); }
+    .leader-row.me { background: var(--surface-2); border-radius: 8px; }
+    .rank-num { width: 22px; font-weight: 700; color: var(--text-muted); font-family: 'Space Grotesk', sans-serif; }
+    .leader-name { flex: 1; }
+    .leader-streak { color: var(--flame-1); font-weight: 600; font-family: 'Space Grotesk', sans-serif; }
+    .league-card { display: flex; justify-content: space-between; align-items: center; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px; margin-bottom: 8px; cursor: pointer; color: var(--text); font-size: 14px; box-shadow: var(--card-shadow-sm); transition: transform 0.15s; }
+    .league-card:active { transform: scale(0.98); }
+    .league-code { color: var(--text-muted); font-family: 'Space Grotesk', sans-serif; font-size: 12px; }
+
+    .hub-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 24px; }
+    .hub-tile {
+      background: var(--surface); border: 1px solid var(--line); border-radius: 16px;
+      padding: 22px 14px; text-align: center; cursor: pointer; color: var(--text);
+      font-family: 'Inter', sans-serif; display: flex; flex-direction: column; align-items: center; gap: 8px;
+      box-shadow: var(--card-shadow-sm); transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .hub-tile:active { transform: scale(0.97); background: var(--surface-2); box-shadow: var(--card-shadow-sm); }
+    .hub-tile .hub-icon { font-size: 26px; }
+    .hub-tile .hub-label { font-size: 13px; font-weight: 600; }
+
+    .filter-row { display: flex; gap: 8px; margin-bottom: 16px; }
+    .filter-row .modal-input { flex: 1; padding: 10px 12px; }
+
+    .premium-card { text-align: center; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 24px; margin-bottom: 10px; box-shadow: var(--card-shadow); }
+    .premium-features { list-style: none; padding: 0; margin: 0; }
+    .premium-features li { padding: 10px 4px; border-bottom: 1px solid var(--line); font-size: 14px; color: var(--text); }
+    .premium-features li::before { content: "✓ "; color: var(--flame-1); font-weight: 700; }
+    .pricing-options { display: flex; gap: 10px; margin-bottom: 8px; }
+    .pricing-card {
+      flex: 1; background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
+      padding: 18px 12px 14px 12px; text-align: center; box-shadow: var(--card-shadow-sm); position: relative;
+    }
+    .pricing-card.featured { border-color: var(--flame-1); box-shadow: var(--card-shadow), 0 0 24px -12px var(--flame-1); }
+    .pricing-badge {
+      position: absolute; top: -10px; left: 50%; transform: translateX(-50%); background: var(--flame-grad);
+      color: white; font-size: 10px; font-weight: 700; padding: 3px 10px; border-radius: 100px; white-space: nowrap;
+    }
+    .pricing-label { font-size: 12px; color: var(--text-muted); font-weight: 600; margin-bottom: 4px; }
+    .pricing-amount { font-size: 24px; font-weight: 700; font-family: 'Space Grotesk', sans-serif; color: var(--text); }
+    .pricing-sub { font-size: 11px; color: var(--text-muted); margin-bottom: 12px; }
+    .pricing-btn { display: block; text-decoration: none; padding: 10px; font-size: 13px; }
+
+    .calendar-card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px; margin-bottom: 20px; box-shadow: var(--card-shadow-sm); }
+    .calendar-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-weight: 600; font-size: 14px; color: var(--text); }
+    .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+    .cal-dow { text-align: center; font-size: 10px; color: var(--text-muted); padding-bottom: 4px; }
+    .cal-cell { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; border-radius: 6px; background: var(--surface-2); font-size: 11px; color: var(--text-muted); cursor: pointer; }
+    .cal-cell.empty-cell { background: none; cursor: default; }
+    .cal-cell.done { background: var(--flame-grad); color: white; font-weight: 600; }
+    .cal-cell.today { box-shadow: 0 0 0 2px var(--flame-1) inset; }
+    .cal-cell.future { opacity: 0.35; cursor: default; pointer-events: none; }
+    .mini-year-grid { margin-top: 10px; }
+
+    .toast {
+      position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%); max-width: 85%;
+      background: var(--surface); border: 1px solid var(--line); color: var(--text);
+      padding: 12px 18px; border-radius: 100px; font-size: 13px; text-align: center;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.3); z-index: 200; opacity: 0; transition: opacity 0.3s;
+      pointer-events: none;
+    }
+    .toast.show { opacity: 1; }
+
+    .bottom-nav {
+      position: fixed; bottom: 0; left: 0; right: 0; background: var(--bg);
+      border-top: 1px solid var(--line); display: flex; justify-content: space-around; padding: 12px 0 16px 0;
+      box-shadow: 0 -4px 16px rgba(0,0,0,0.15);
+    }
+    .nav-btn {
+      background: none; border: none; font-size: 11px; color: var(--text-muted);
+      display: flex; flex-direction: column; align-items: center; gap: 3px; cursor: pointer; font-family: 'Inter', sans-serif;
+      position: relative; padding: 2px 10px; transition: color 0.15s;
+    }
+    .nav-btn .icon { font-size: 19px; position: relative; z-index: 1; transition: transform 0.15s; }
+    .nav-btn.active { color: var(--flame-1); }
+    .nav-btn.active .icon { transform: translateY(-1px); }
+    .nav-btn.active::before {
+      content: ""; position: absolute; top: -4px; left: 50%; transform: translateX(-50%);
+      width: 28px; height: 28px; border-radius: 50%; background: color-mix(in srgb, var(--flame-1) 16%, transparent);
+    }
+
+    @keyframes fadeSlideUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+    #page-home.reveal > * { opacity: 0; animation: fadeSlideUp 0.5s ease forwards; }
+    #page-home.reveal > *:nth-child(1) { animation-delay: 0.05s; }
+    #page-home.reveal > *:nth-child(2) { animation-delay: 0.12s; }
+    #page-home.reveal > *:nth-child(3) { animation-delay: 0.19s; }
+    #page-home.reveal > *:nth-child(4) { animation-delay: 0.26s; }
+    #page-home.reveal > *:nth-child(5) { animation-delay: 0.33s; }
+    #page-home.reveal > *:nth-child(6) { animation-delay: 0.38s; }
+    @media (prefers-reduced-motion: reduce) {
+      #page-home.reveal > * { animation: none; opacity: 1; }
+    }
+
+    .badge-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 24px; }
+    .badge {
+      background: var(--surface); border-radius: 14px; padding: 14px 4px; text-align: center;
+      border: 1px solid var(--line); opacity: 0.4;
+    }
+    .badge.unlocked { opacity: 1; border: 1px solid var(--flame-1); box-shadow: 0 0 0 1px var(--flame-1) inset, 0 0 24px -10px var(--flame-1); }
+    .badge .icon { font-size: 24px; display: block; margin-bottom: 4px; }
+    .badge .label { font-size: 10px; color: var(--text-muted); }
+
+    #celebration, #dayModal, #habitModal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); align-items: center; justify-content: center; z-index: 100; padding: 20px; }
+    #celebration .box, #dayModal .box, #habitModal .box { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 26px; text-align: center; max-width: 300px; width: 85%; box-shadow: 0 20px 48px -12px rgba(0,0,0,0.5); }
+    #celebration .icon { font-size: 46px; margin-bottom: 10px; }
+    #celebration button, #dayModal button {
+      margin-top: 16px; padding: 10px 22px; border: none; background: var(--flame-grad); color: white;
+      border-radius: 100px; cursor: pointer; font-weight: 600; font-family: 'Inter', sans-serif;
+    }
+    .day-modal-list { list-style: none; padding: 0; margin: 14px 0; text-align: left; }
+    .day-modal-list li { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 14px; background: none; }
+    .day-modal-list .status { font-size: 15px; }
+
+    /* Add/Edit habit modal */
+    #habitModal .box { text-align: left; max-width: 340px; max-height: 85vh; overflow-y: auto; }
+    #habitModal .modal-title { font-weight: 600; font-size: 16px; margin-bottom: 4px; }
+    .modal-label { display: block; font-size: 12px; color: var(--text-muted); margin: 16px 0 6px 0; font-weight: 600; }
+    .modal-input {
+      width: 100%; padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px;
+      background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; font-size: 14px;
+    }
+    .color-grid { display: flex; gap: 8px; flex-wrap: wrap; }
+    .color-swatch { width: 32px; height: 32px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; padding: 0; }
+    .color-swatch.selected { border-color: var(--text); }
+    .freq-options { display: flex; flex-direction: column; gap: 10px; }
+    .freq-radio { display: flex; align-items: center; gap: 8px; font-size: 14px; cursor: pointer; }
+    .day-picker-row { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
+    .day-toggle {
+      width: 34px; height: 34px; border-radius: 8px; border: 1px solid var(--line);
+      background: var(--surface-2); color: var(--text-muted); font-size: 12px; cursor: pointer; font-family: 'Inter', sans-serif;
+    }
+    .day-toggle.selected { background: var(--flame-grad); color: white; border-color: transparent; }
+    .modal-actions { display: flex; gap: 10px; margin-top: 22px; }
+    .modal-btn-secondary {
+      flex: 1; padding: 12px; border-radius: 10px; border: 1px solid var(--line); background: none;
+      color: var(--text); cursor: pointer; font-family: 'Inter', sans-serif; font-weight: 600; font-size: 14px;
+    }
+    .modal-btn-primary {
+      flex: 1; padding: 12px; border-radius: 10px; border: none; background: var(--flame-grad);
+      color: white; cursor: pointer; font-family: 'Inter', sans-serif; font-weight: 600; font-size: 14px;
+    }
+
+    .heatmap-card { background: var(--surface); border-radius: 14px; padding: 16px; margin-bottom: 20px; border: 1px solid var(--line); box-shadow: var(--card-shadow-sm); }
+    .heatmap-tabs { display: flex; gap: 6px; margin-bottom: 14px; }
+    .heatmap-tab {
+      flex: 1; padding: 7px 0; text-align: center; font-size: 12px; border: none;
+      background: var(--surface-2); color: var(--text-muted); border-radius: 8px; cursor: pointer; font-family: 'Inter', sans-serif;
+    }
+    .heatmap-tab.active { background: var(--flame-grad); color: white; }
+    .heatmap-scroll { overflow-x: auto; padding-bottom: 4px; }
+    .heatmap-grid { display: grid; grid-auto-flow: column; grid-template-rows: repeat(7, 12px); gap: 3px; width: max-content; }
+    .heatmap-grid.simple-row { grid-auto-flow: row; grid-template-columns: repeat(10, 1fr); grid-template-rows: none; width: 100%; }
+    .heatmap-cell { width: 12px; height: 12px; border-radius: 3px; background: var(--surface-2); cursor: pointer; }
+    .heatmap-cell.l1 { background: var(--amber); opacity: 0.5; }
+    .heatmap-cell.l2 { background: var(--flame-1); }
+    .heatmap-cell.l3 { background: var(--flame-2); }
+    .heatmap-bars { display: flex; align-items: flex-end; gap: 6px; height: 90px; }
+    .heatmap-bar-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; }
+    .heatmap-bar { width: 100%; background: var(--flame-grad); border-radius: 4px 4px 0 0; min-height: 2px; }
+    .heatmap-bar-label { font-size: 9px; margin-top: 4px; color: var(--text-muted); }
+
+    .detail-hero { text-align: center; margin-bottom: 24px; }
+    .detail-hero .name { font-size: 16px; font-weight: 500; color: var(--text-muted); margin-bottom: 6px; }
+    .detail-hero .streak-num {
+      font-size: 52px; font-weight: 700; background: var(--flame-grad);
+      -webkit-background-clip: text; background-clip: text; color: transparent;
+    }
+    .detail-hero .streak-label { font-size: 13px; color: var(--text-muted); }
+    .detail-stats-row { display: flex; gap: 10px; margin-bottom: 24px; }
+    .detail-stat-box { flex: 1; background: var(--surface); border-radius: 14px; padding: 14px; text-align: center; border: 1px solid var(--line); box-shadow: var(--card-shadow-sm); }
+    .detail-stat-box .num { font-size: 20px; font-weight: 700; font-family: 'Space Grotesk', sans-serif; }
+    .detail-stat-box .label { font-size: 11px; color: var(--text-muted); }
+    #detailNotes {
+      width: 100%; min-height: 90px; padding: 14px; border-radius: 12px; border: 1px solid var(--line);
+      font-family: 'Inter', sans-serif; font-size: 14px; resize: vertical; background: var(--surface); color: var(--text);
+    }
+    .section-label { font-size: 13px; margin: 24px 0 10px 0; font-weight: 600; color: var(--text-muted); }
   </style>
 </head>
 <body>
-  <div id="root"></div>
 
-  <script type="text/babel">
-    const { useState, useEffect } = React;
+  <div id="onboarding">
+    <div class="onboard-step active" id="onboardStep1">
+      <div class="emoji">🔥</div>
+      <h1>Habit Tracker</h1>
+      <p>Build daily streaks, track your progress, and stay consistent — all saved right on your device.</p>
+      <button id="onboardNext1" class="onboard-btn">Get Started</button>
+    </div>
 
-    const MOODS = [
-      { label: 'Awful', emoji: '😞', value: 1 },
-      { label: 'Bad',   emoji: '😕', value: 2 },
-      { label: 'Okay',  emoji: '😐', value: 3 },
-      { label: 'Good',  emoji: '🙂', value: 4 },
-      { label: 'Great', emoji: '😄', value: 5 },
-    ];
+    <div class="onboard-step" id="onboardStep2">
+      <div class="emoji">👋</div>
+      <h1>What's your name?</h1>
+      <p>We'll use it to say hi when you open the app.</p>
+      <input type="text" id="onboardNameInput" class="modal-input" placeholder="Your name" style="max-width:260px; text-align:center;">
+      <button id="onboardNext2" class="onboard-btn" style="margin-top:20px;">Continue</button>
+    </div>
 
-    const BADGE_DEFS = [
-      { id: 'first',   name: 'First Step',    desc: 'Complete your first habit',    icon: '🚀', earned: true  },
-      { id: 'week',    name: 'Week Warrior',   desc: '7-day streak on any habit',    icon: '🔥', earned: true  },
-      { id: 'perfect', name: 'Perfect Day',    desc: 'Complete all habits in a day', icon: '⭐', earned: false },
-      { id: 'month',   name: 'Month Master',   desc: '30-day streak',                icon: '👑', earned: false },
-      { id: 'journal', name: 'Soul Searcher',  desc: 'Log 10 journal entries',       icon: '📓', earned: false },
-      { id: 'early',   name: 'Early Bird',     desc: '5 habits before 9 AM',         icon: '🌅', earned: false },
-    ];
+    <div class="onboard-step" id="onboardStepReferral">
+      <div class="emoji">🔎</div>
+      <h1>How did you hear about us?</h1>
+      <div class="onboard-options" id="onboardReferralOptions"></div>
+    </div>
 
-    const SAMPLE_HABITS = [
-      { id:'1', name:'Morning Meditation', icon:'🧘', color:'#7c3aed', streak:12, completedToday:false, frequency:'Daily', xpPerCompletion:15 },
-      { id:'2', name:'Exercise',           icon:'💪', color:'#a3e635', streak:8,  completedToday:false, frequency:'Daily', xpPerCompletion:20 },
-      { id:'3', name:'Read 30 Min',        icon:'📚', color:'#f59e0b', streak:5,  completedToday:false, frequency:'Daily', xpPerCompletion:10 },
-      { id:'4', name:'Cold Shower',        icon:'🚿', color:'#06b6d4', streak:3,  completedToday:false, frequency:'Daily', xpPerCompletion:12 },
-      { id:'5', name:'No Sugar',           icon:'🍎', color:'#ef4444', streak:15, completedToday:false, frequency:'Daily', xpPerCompletion:18 },
-    ];
+    <div class="onboard-step" id="onboardStep3">
+      <div class="emoji">🔥</div>
+      <h1>What are you here to build?</h1>
+      <div class="onboard-options" id="onboardQ1"></div>
+    </div>
 
-    const ICONS  = ['⚡','🧘','💪','📚','🚿','🍎','✍️','🏃','💧','🎯','🌿','🎵'];
-    const COLORS = ['#7c3aed','#a3e635','#f59e0b','#06b6d4','#ef4444','#ec4899','#8b5cf6','#10b981'];
+    <div class="onboard-step" id="onboardStep4">
+      <div class="emoji">🕒</div>
+      <h1>Which one sounds like you?</h1>
+      <div class="onboard-options" id="onboardQ2"></div>
+    </div>
 
-    const today    = new Date();
-    const todayStr = today.toISOString().split('T')[0];
+    <div class="onboard-step" id="onboardStep5">
+      <div class="emoji">🎯</div>
+      <h1>What usually gets in the way?</h1>
+      <div class="onboard-options" id="onboardQ3"></div>
+    </div>
 
-    function getWeekDates() {
-      return Array.from({ length: 7 }, (_, i) => {
-        const d = new Date(today);
-        d.setDate(d.getDate() - 3 + i);
-        return d;
-      });
-    }
+    <div class="onboard-step" id="onboardStep6">
+      <div class="emoji">✨</div>
+      <h1 id="onboardSummaryName"></h1>
+      <p id="onboardSummaryText"></p>
+      <button id="onboardFinishBtn" class="onboard-btn">Enter Habit Tracker</button>
+    </div>
+  </div>
 
-    function getLast30Days() {
-      return Array.from({ length: 30 }, (_, i) => {
-        const d = new Date(today);
-        d.setDate(d.getDate() - 29 + i);
-        return d;
-      });
-    }
+  <div id="app">
+    <div class="page active" id="page-home">
+      <div class="dashboard-top-row">
+        <div class="dashboard-greeting" id="userGreeting"></div>
+        <button class="dashboard-settings-btn" id="dashboardSettingsBtn" title="Settings">⚙️</button>
+      </div>
+      <div class="hero">
+        <div class="hero-num num-font" id="heroStreak">0</div>
+        <div class="hero-label">longest active streak</div>
+      </div>
 
-    /* ── Celebration burst ── */
-    function CelebrationBurst({ x, y }) {
-      const particles = Array.from({ length: 12 }, (_, i) => {
-        const angle = (i * 30 * Math.PI) / 180;
-        const dist  = 60 + Math.random() * 40;
-        return { dx: Math.cos(angle)*dist, dy: Math.sin(angle)*dist,
-          color: ['#a3e635','#7c3aed','#f59e0b','#ec4899'][i%4] };
-      });
-      return (
-        <div style={{ position:'fixed', left:x, top:y, pointerEvents:'none', zIndex:50 }}>
-          {particles.map((p,i) => (
-            <div key={i} style={{
-              position:'absolute', width:8, height:8, borderRadius:'50%',
-              backgroundColor: p.color,
-              animation: 'burst 0.6s ease-out forwards',
-              '--dx': p.dx+'px', '--dy': p.dy+'px',
-            }} />
-          ))}
-        </div>
-      );
-    }
-
-    /* ── XP Bar ── */
-    function XPBar({ xp, level, maxXP }) {
-      const pct = Math.min((xp/maxXP)*100, 100);
-      return (
-        <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-          <div style={{ flex:1, height:8, borderRadius:99, background:'#1e1a2e', overflow:'hidden' }}>
-            <div style={{
-              height:'100%', borderRadius:99,
-              background:'linear-gradient(90deg,#7c3aed,#a3e635)',
-              width:`${pct}%`, transition:'width 0.7s ease'
-            }} />
-          </div>
-          <span style={{ fontFamily:'var(--font-mono)', fontSize:12, color:'#a3e635' }}>Lv.{level}</span>
-        </div>
-      );
-    }
-
-    /* ── Habit Card ── */
-    function HabitCard({ habit, onToggle }) {
-      const [hover, setHover] = useState(false);
-      return (
-        <div
-          onClick={(e) => onToggle(habit.id, e)}
-          onMouseEnter={() => setHover(true)}
-          onMouseLeave={() => setHover(false)}
-          style={{
-            display:'flex', alignItems:'center', gap:16,
-            padding:16, borderRadius:20,
-            border: `1.5px solid ${habit.completedToday ? 'rgba(163,230,53,0.3)' : hover ? 'rgba(124,58,237,0.5)' : 'var(--border)'}`,
-            background: habit.completedToday ? '#0d1a00' : hover ? '#16122a' : 'var(--card)',
-            cursor:'pointer', userSelect:'none', transition:'all 0.25s',
-          }}
-        >
-          <div style={{
-            width:48, height:48, borderRadius:14, fontSize:24,
-            display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0,
-            backgroundColor: habit.color+'22',
-            border: `1.5px solid ${habit.color}44`,
-            transform: hover ? 'scale(1.08)' : 'scale(1)', transition:'transform 0.2s',
-          }}>{habit.icon}</div>
-
-          <div style={{ flex:1, minWidth:0 }}>
-            <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-              <span style={{
-                fontFamily:'var(--font-display)', fontWeight:600, fontSize:15,
-                textDecoration: habit.completedToday ? 'line-through' : 'none',
-                opacity: habit.completedToday ? 0.5 : 1,
-              }}>{habit.name}</span>
-              {habit.completedToday && (
-                <span style={{ fontSize:11, fontWeight:700, padding:'2px 8px', borderRadius:99, background:'rgba(163,230,53,0.12)', color:'#a3e635' }}>Done</span>
-              )}
-            </div>
-            <div style={{ display:'flex', alignItems:'center', gap:12, marginTop:4 }}>
-              <span style={{ fontFamily:'var(--font-mono)', fontSize:11, color:'var(--muted-fg)' }}>{habit.frequency}</span>
-              {habit.streak > 0 && (
-                <span style={{ fontFamily:'var(--font-mono)', fontSize:11, color:'#f59e0b' }}>🔥 {habit.streak}d</span>
-              )}
+      <div class="level-card">
+        <div class="level-top">
+          <div class="level-left">
+            <div class="level-badge" id="levelBadge">1</div>
+            <div>
+              <div class="level-name" id="levelName">Level 1</div>
+              <div class="level-title" id="levelTitle">Beginner</div>
             </div>
           </div>
-
-          <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:4 }}>
-            <div style={{
-              width:28, height:28, borderRadius:'50%', flexShrink:0,
-              display:'flex', alignItems:'center', justifyContent:'center',
-              border: `2px solid ${habit.completedToday ? '#a3e635' : hover ? 'var(--primary)' : 'var(--border)'}`,
-              background: habit.completedToday ? '#a3e635' : 'transparent',
-              transition:'all 0.25s',
-            }}>
-              {habit.completedToday && (
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                  <path d="M2 6l3 3 5-5" stroke="#0a1200" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              )}
-            </div>
-            <span style={{ fontFamily:'var(--font-mono)', fontSize:11, color:'var(--muted-fg)' }}>+{habit.xpPerCompletion}xp</span>
-          </div>
+          <div class="level-xp-text" id="levelXPText">0 / 100 XP</div>
         </div>
-      );
+        <div class="level-progress-track">
+          <div class="level-progress-fill" id="levelProgressFill" style="width:0%"></div>
+        </div>
+      </div>
+
+      <div class="mood-card" id="moodCard">
+        <div class="mood-question" id="moodQuestion">How are you feeling today?</div>
+        <div class="mood-options" id="moodOptions"></div>
+      </div>
+
+      <div class="section-label">Menu</div>
+      <div class="hub-grid">
+        <button class="hub-tile" data-hub="habits"><span class="hub-icon">📋</span><span class="hub-label">Habits</span></button>
+        <button class="hub-tile" data-hub="stats"><span class="hub-icon">📊</span><span class="hub-label">Stats</span></button>
+        <button class="hub-tile" data-hub="leagues"><span class="hub-icon">🏆</span><span class="hub-label">Leagues</span></button>
+        <button class="hub-tile" data-hub="badges"><span class="hub-icon">🏅</span><span class="hub-label">Badges</span></button>
+        <button class="hub-tile" data-hub="journal"><span class="hub-icon">📓</span><span class="hub-label">Journal</span></button>
+        <button class="hub-tile" data-hub="settings"><span class="hub-icon">⚙️</span><span class="hub-label">Settings</span></button>
+        <button class="hub-tile" data-hub="premium"><span class="hub-icon">⚡</span><span class="hub-label">Go Premium</span></button>
+      </div>
+    </div>
+
+    <div class="page" id="page-habits">
+      <div class="top-bar"><button class="back-btn" id="habitsBackBtn">← Back</button></div>
+      <button id="addBtn" class="add-habit-btn">+ Add Habit</button>
+      <div class="filter-row">
+        <input type="text" id="habitSearch" class="modal-input" placeholder="Search habits…">
+        <select id="categoryFilter" class="modal-input"></select>
+      </div>
+      <ul id="habitList"></ul>
+      <div class="empty-state" id="emptyMsg"></div>
+      <div class="section-label">Archived</div>
+      <div id="archivedList"></div>
+    </div>
+
+    <div class="page" id="page-detail">
+      <div class="top-bar"><button class="back-btn" id="backBtn">← Back</button></div>
+      <div class="detail-hero">
+        <div class="name" id="detailName"></div>
+        <div class="streak-num num-font" id="detailStreak">0</div>
+        <div class="streak-label">day streak</div>
+      </div>
+      <div class="detail-stats-row">
+        <div class="detail-stat-box"><div class="num" id="detailBest">0</div><div class="label">Best streak</div></div>
+        <div class="detail-stat-box"><div class="num" id="detailTotal">0</div><div class="label">Total days</div></div>
+      </div>
+      <div class="section-label">Badges earned</div>
+      <div class="badge-grid" id="detailBadges"></div>
+      <div class="section-label">Last 30 days</div>
+      <div class="heatmap-card" style="margin-bottom:16px;"><div id="detailHeatmap"></div></div>
+      <div class="section-label">Calendar</div>
+      <div class="calendar-card">
+        <div class="calendar-nav">
+          <button id="calPrevBtn" class="icon-btn">←</button>
+          <span id="calMonthLabel"></span>
+          <button id="calNextBtn" class="icon-btn">→</button>
+        </div>
+        <div class="calendar-grid" id="calendarGrid"></div>
+      </div>
+      <div class="section-label">Notes</div>
+      <textarea id="detailNotes" placeholder="Why does this habit matter to you?"></textarea>
+    </div>
+
+    <div class="page" id="page-stats">
+      <div class="top-bar"><h2>Stats</h2></div>
+      <div class="heatmap-card">
+        <div class="heatmap-tabs">
+          <button class="heatmap-tab active" data-range="daily">Daily</button>
+          <button class="heatmap-tab" data-range="weekly">Weekly</button>
+          <button class="heatmap-tab" data-range="monthly">Monthly</button>
+          <button class="heatmap-tab" data-range="yearly">Yearly</button>
+        </div>
+        <div id="heatmapContainer"></div>
+      </div>
+      <div class="section-label">Mood</div>
+      <div class="week-row" id="moodWeekRow" style="margin-bottom:20px;"></div>
+      <div class="section-label">This week</div>
+      <div id="statsList"></div>
+    </div>
+
+    <div class="page" id="page-badges">
+      <div class="top-bar"><button class="back-btn" id="badgesBackBtn">← Back</button></div>
+      <div class="section-label">Achievements</div>
+      <div class="badge-grid" id="badgeGrid"></div>
+    </div>
+
+    <div class="page" id="page-journal">
+      <div class="top-bar"><button class="back-btn" id="journalBackBtn">← Back</button></div>
+      <div id="journalList"></div>
+      <p class="empty" id="journalEmpty">No habits yet — add one to start journaling.</p>
+    </div>
+
+    <div class="page" id="page-premium">
+      <button class="premium-close-btn" id="premiumCloseBtn" title="Close">✕</button>
+      <div class="premium-card" style="margin-top:16px;">
+        <div style="font-size:36px;">⚡</div>
+        <h2 style="margin:10px 0 6px 0;">Unlock Total Friction Control</h2>
+        <p style="color:var(--text-muted); font-size:14px; margin-bottom:10px; line-height:1.5;">Break the loops holding you back. Reclaim your focus.</p>
+        <p id="premiumStatusText" style="color:var(--text-muted); font-size:13px;">You're on the Free plan</p>
+      </div>
+      <div class="section-label">What you get</div>
+      <ul class="premium-features">
+        <li>Unlimited habits — stop hitting the wall at 3</li>
+        <li>Leagues — race your streaks against friends, privately or on the public board</li>
+        <li>Journal — reflect on any habit without digging through tabs</li>
+      </ul>
+      <div class="section-label">Choose a plan</div>
+      <div class="pricing-options">
+        <div class="pricing-card">
+          <div class="pricing-label">Monthly</div>
+          <div class="pricing-amount" id="priceMonthly">£3.99</div>
+          <div class="pricing-sub">per month</div>
+          <a id="buyMonthlyBtn" class="primaryBtn pricing-btn" href="#" target="_blank" rel="noopener">Subscribe</a>
+        </div>
+        <div class="pricing-card featured">
+          <div class="pricing-badge">Best value</div>
+          <div class="pricing-label">One-time</div>
+          <div class="pricing-amount" id="priceOnce">£20</div>
+          <div class="pricing-sub">pay once, unlock forever</div>
+          <a id="buyOnceBtn" class="primaryBtn pricing-btn" href="#" target="_blank" rel="noopener">Buy once</a>
+        </div>
+      </div>
+      <p style="font-size:11px; color:var(--text-muted); text-align:center; margin:-10px 0 16px 0;">Prices are estimated in your local currency. You'll see the exact amount at checkout.</p>
+      <div class="section-label">Already paid?</div>
+      <div class="input-row">
+        <input type="text" id="redeemCodeInput" class="modal-input" placeholder="Enter your code" style="flex:1;">
+        <button id="redeemCodeBtn" class="primaryBtn">Unlock</button>
+      </div>
+    </div>
+
+    <div class="page" id="page-leagues">
+      <div class="top-bar"><h2>Leagues</h2></div>
+      <div class="setting-row"><span>Show me on public leaderboard</span><button id="togglePublicBtn">Off</button></div>
+      <div class="section-label">Global Leaderboard</div>
+      <div id="publicLeaderboard"></div>
+      <div id="myLeaguesSection">
+        <div class="section-label">Your Leagues</div>
+        <div class="input-row" style="margin-bottom:10px;">
+          <button id="createLeagueBtn" class="primaryBtn" style="flex:1;padding:12px;">+ Create League</button>
+          <button id="joinLeagueBtn" class="primaryBtn" style="flex:1;padding:12px;">Join League</button>
+        </div>
+        <div id="myLeaguesList"></div>
+      </div>
+      <div id="leagueDetailView" style="display:none;margin-top:10px;">
+        <button class="back-btn" id="leagueBackBtn">← Back to leagues</button>
+        <div class="section-label" id="leagueDetailName"></div>
+        <div id="leagueLeaderboard"></div>
+      </div>
+    </div>
+
+    <div class="page" id="page-settings">
+      <div class="top-bar"><h2>Settings</h2></div>
+
+      <div class="settings-group-label">App</div>
+      <div class="setting-row"><span>Theme</span><button id="themeToggle">Toggle</button></div>
+      <div class="setting-row"><span>Language</span><span class="settings-static">English</span></div>
+      <div class="setting-row"><span>General reminder (all habits)</span><input type="time" id="reminderTime"></div>
+      <div class="setting-row"><span>Enable notifications</span><button id="enableNotif">Enable</button></div>
+      <div class="setting-row"><span>Calm background music</span><button id="calmMusicToggle">Off</button></div>
+      <div class="setting-row"><span>Music volume</span><input type="range" id="calmMusicVolume" min="0" max="100" style="flex:1; margin-left:12px;"></div>
+
+      <div class="settings-group-label">Data &amp; Backup</div>
+      <div class="setting-row"><span>Backup your data</span><button id="exportBtn">Export</button></div>
+      <div class="setting-row">
+        <span>Restore from file</span>
+        <label class="import-label" for="importFile">Import</label>
+        <input type="file" id="importFile" accept="application/json" style="display:none;">
+      </div>
+      <div class="setting-row"><span>Your sync code</span><span id="syncCodeDisplay" style="font-family:'Space Grotesk', sans-serif; font-weight:600;"></span></div>
+      <div class="setting-row"><span>Cloud backup</span><span id="cloudSyncStatus" style="font-size:12px; color:var(--text-muted);">Not synced yet</span></div>
+      <div class="setting-row"><span>Restore on this device</span><button id="cloudRestoreBtn">Restore</button></div>
+      <div class="setting-row"><span>Use a different sync code</span><button id="useOtherCodeBtn">Enter code</button></div>
+
+      <div class="settings-group-label">Help</div>
+      <a class="setting-row settings-link" href="mailto:REPLACE_WITH_YOUR_EMAIL?subject=Habit%20Tracker%20Support">
+        <span>Contact support</span><span class="settings-chevron">›</span>
+      </a>
+      <a class="setting-row settings-link" href="mailto:REPLACE_WITH_YOUR_EMAIL?subject=Habit%20Tracker%20Feedback">
+        <span>Send feedback</span><span class="settings-chevron">›</span>
+      </a>
+
+      <div class="settings-group-label">About</div>
+      <a class="setting-row settings-link" href="https://REPLACE_WITH_YOUR_WEBSITE" target="_blank" rel="noopener">
+        <span>Website</span><span class="settings-chevron">›</span>
+      </a>
+      <div class="setting-row"><span>Version</span><span class="settings-static">1.0.0</span></div>
+    </div>
+
+    <nav class="bottom-nav">
+      <button class="nav-btn active" data-page="home"><span class="icon">🏠</span>Home</button>
+      <button class="nav-btn" data-page="stats"><span class="icon">📊</span>Stats</button>
+      <button class="nav-btn" data-page="leagues"><span class="icon">🏆</span>Leagues</button>
+      <button class="nav-btn" data-page="settings"><span class="icon">⚙️</span>Settings</button>
+    </nav>
+  </div>
+
+  <div id="celebration">
+    <div class="box">
+      <div class="icon" id="celebrationIcon">🎉</div>
+      <div id="celebrationText"></div>
+      <button onclick="document.getElementById('celebration').style.display='none'">Nice!</button>
+    </div>
+  </div>
+
+  <div id="dayModal">
+    <div class="box">
+      <div id="dayModalDate" style="font-weight:600; font-size:16px;"></div>
+      <ul class="day-modal-list" id="dayModalList"></ul>
+      <button onclick="document.getElementById('dayModal').style.display='none'">Close</button>
+    </div>
+  </div>
+
+  <div id="habitModal">
+    <div class="box">
+      <div class="modal-title" id="habitModalTitle">Add Habit</div>
+
+      <label class="modal-label" for="modalHabitName">Name</label>
+      <input type="text" id="modalHabitName" class="modal-input" placeholder="e.g. Drink water">
+
+      <label class="modal-label" for="modalIcon">Icon (optional)</label>
+      <input type="text" id="modalIcon" class="modal-input" placeholder="e.g. 💧 (leave blank to use category icon)" maxlength="4">
+
+      <label class="modal-label" for="modalDescription">Description (optional)</label>
+      <input type="text" id="modalDescription" class="modal-input" placeholder="A short note about this habit">
+
+      <label class="modal-label" for="modalCategory">Category</label>
+      <select id="modalCategory" class="modal-input"></select>
+
+      <label class="modal-label">Color</label>
+      <div id="modalColorGrid" class="color-grid"></div>
+
+      <label class="modal-label">Frequency</label>
+      <div class="freq-options">
+        <label class="freq-radio"><input type="radio" name="freqType" value="daily" checked> Every day</label>
+        <label class="freq-radio"><input type="radio" name="freqType" value="custom"> Specific days</label>
+        <label class="freq-radio"><input type="radio" name="freqType" value="count"> X times per week/month</label>
+      </div>
+      <div id="dayPickerRow" class="day-picker-row"></div>
+      <div id="countRow" style="display:none; gap:8px; margin-top:10px;">
+        <input type="number" id="modalCountTarget" class="modal-input" placeholder="Target (e.g. 3)" min="1" style="flex:1;">
+        <select id="modalCountPeriod" class="modal-input" style="flex:1;">
+          <option value="week">per week</option>
+          <option value="month">per month</option>
+        </select>
+      </div>
+
+      <label class="modal-label">Goal type</label>
+      <div class="freq-options">
+        <label class="freq-radio"><input type="radio" name="goalType" value="check" checked> Simple check-off</label>
+        <label class="freq-radio"><input type="radio" name="goalType" value="quantity"> Hit a daily number</label>
+      </div>
+      <div id="quantityRow" style="display:none; margin-top:10px;">
+        <input type="number" id="modalTargetQty" class="modal-input" placeholder="Target (e.g. 8)" min="1">
+        <input type="text" id="modalUnit" class="modal-input" placeholder="Unit (e.g. glasses)" style="margin-top:8px;">
+      </div>
+
+      <label class="modal-label" for="modalReminderTime">Reminder (optional)</label>
+      <input type="time" id="modalReminderTime" class="modal-input">
+
+      <label class="modal-label" for="modalChainAfter">Chain after (optional)</label>
+      <select id="modalChainAfter" class="modal-input">
+        <option value="">None — starts its own chain</option>
+      </select>
+
+      <div class="modal-actions">
+        <button id="modalCancelBtn" class="modal-btn-secondary">Cancel</button>
+        <button id="modalSaveBtn" class="modal-btn-primary">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const CATEGORIES = [
+      { id: "health", label: "Health", icon: "💊" },
+      { id: "fitness", label: "Fitness", icon: "🏋️" },
+      { id: "mindfulness", label: "Mindfulness", icon: "🧘" },
+      { id: "learning", label: "Learning", icon: "📚" },
+      { id: "work", label: "Work", icon: "💼" },
+      { id: "creative", label: "Creative", icon: "🎨" },
+      { id: "social", label: "Social", icon: "👥" },
+      { id: "other", label: "Other", icon: "✨" }
+    ];
+    const HABIT_COLORS = ["#FF7A45", "#E63946", "#FFC857", "#4ECDC4", "#6C5CE7", "#2ECC71", "#3498DB", "#FF6FA5"];
+    const DAY_NAMES_SHORT = ["S", "M", "T", "W", "T", "F", "S"];
+    const DAY_NAMES_FULL = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+    let habits = JSON.parse(localStorage.getItem("habits")) || [];
+    habits.forEach(h => {
+      if (!h.history) h.history = [];
+      if (!h.badges) h.badges = [];
+      if (h.bestStreak === undefined) h.bestStreak = h.streak || 0;
+      if (h.notes === undefined) h.notes = "";
+      if (!h.category) h.category = "other";
+      if (!h.color) h.color = HABIT_COLORS[0];
+      if (!h.frequency) h.frequency = { type: "daily" };
+      if (!h.goalType) h.goalType = "check";
+      if (!h.dailyProgress) h.dailyProgress = {};
+      if (h.archived === undefined) h.archived = false;
+      if (h.icon === undefined) h.icon = "";
+      if (h.description === undefined) h.description = "";
+      if (h.reminderTime === undefined) h.reminderTime = "";
+      if (!h.id) h.id = "h_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 8);
+      if (h.chainAfter === undefined) h.chainAfter = "";
+    });
+
+    let totalXP = parseInt(localStorage.getItem("totalXP") || "0", 10);
+
+    let currentHeatmapRange = "daily";
+    let currentDetailIndex = null;
+    let habitSearchQuery = "";
+    let habitCategoryFilter = "all";
+
+    const FREE_HABIT_LIMIT = 3;
+    const STRIPE_MONTHLY_LINK = "https://buy.stripe.com/REPLACE_WITH_YOUR_MONTHLY_LINK";
+    const STRIPE_ONCE_LINK = "https://buy.stripe.com/REPLACE_WITH_YOUR_ONE_TIME_LINK";
+    const PRICE_BASE_GBP = { monthly: 3.99, once: 20 };
+    const CURRENCY_RATES = {
+      GBP: { symbol: "£", rate: 1 },
+      USD: { symbol: "$", rate: 1.27 },
+      EUR: { symbol: "€", rate: 1.17 },
+      CAD: { symbol: "CA$", rate: 1.72 },
+      AUD: { symbol: "AU$", rate: 1.93 }
+    };
+    function isPremiumUser() { return localStorage.getItem("isPremium") === "true"; }
+    let editingIndex = null;
+
+    function detectCurrency() {
+      const locale = navigator.language || "en-GB";
+      if (locale.endsWith("-US")) return "USD";
+      if (locale.endsWith("-GB")) return "GBP";
+      if (locale.endsWith("-CA")) return "CAD";
+      if (locale.endsWith("-AU")) return "AUD";
+      const euroLangs = ["de","fr","es","it","nl","pt","ie","fi","el","at","be","pl"];
+      if (euroLangs.includes(locale.split("-")[0])) return "EUR";
+      return "USD";
     }
 
-    /* ── Stat Card ── */
-    function StatCard({ label, value, sub, color }) {
-      return (
-        <div style={{ padding:16, borderRadius:20, border:'1.5px solid var(--border)', background:'var(--card)', display:'flex', flexDirection:'column', gap:4 }}>
-          <span style={{ fontSize:11, fontWeight:500, color:'var(--muted-fg)' }}>{label}</span>
-          <span style={{ fontFamily:'var(--font-display)', fontWeight:700, fontSize:26, color: color||'var(--fg)' }}>{value}</span>
-          {sub && <span style={{ fontSize:11, color:'var(--muted-fg)' }}>{sub}</span>}
-        </div>
-      );
+    function formatPrice(amountGBP) {
+      const info = CURRENCY_RATES[detectCurrency()] || CURRENCY_RATES.USD;
+      const converted = amountGBP * info.rate;
+      const display = converted < 10 ? converted.toFixed(2) : Math.round(converted);
+      return info.symbol + display;
     }
 
-    /* ══════════════════════════════════════ APP ══════════════════════════════════════ */
-    function App() {
-      const [tab,          setTab]          = useState('today');
-      const [habits,       setHabits]       = useState(SAMPLE_HABITS);
-      const [xp,           setXP]           = useState(47);
-      const [showAdd,      setShowAdd]      = useState(false);
-      const [celebration,  setCelebration]  = useState(null);
-      const [newHabit,     setNewHabit]     = useState({ name:'', icon:'⚡', color:'#7c3aed' });
-      const [selectedDay,  setSelectedDay]  = useState(todayStr);
-      const [entries,      setEntries]      = useState([{ date:todayStr, mood:4, note:'' }]);
-      const [note,         setNote]         = useState('');
-      const [mood,         setMood]         = useState(4);
+    function renderPricing() {
+      const monthlyEl = document.getElementById("priceMonthly");
+      const onceEl = document.getElementById("priceOnce");
+      if (monthlyEl) monthlyEl.textContent = formatPrice(PRICE_BASE_GBP.monthly);
+      if (onceEl) onceEl.textContent = formatPrice(PRICE_BASE_GBP.once);
+    }
+    renderPricing();
 
-      const weekDates = getWeekDates();
-      const last30    = getLast30Days();
-      const level     = Math.floor(xp/100)+1;
-      const xpInLevel = xp%100;
-      const completed = habits.filter(h => h.completedToday).length;
-      const total     = habits.length;
+    const BADGE_LEVELS = [
+      { days: 3, icon: "🔥", label: "3 Day Spark" },
+      { days: 7, icon: "⭐", label: "7 Day Streak" },
+      { days: 14, icon: "💪", label: "14 Day Strong" },
+      { days: 30, icon: "🏆", label: "30 Day Champion" },
+      { days: 100, icon: "👑", label: "100 Day Legend" }
+    ];
 
-      // Stable heat values (seeded by index so they don't re-randomise)
-      const heatValues = Array.from({length:30},(_,i)=>[0,1,2,3][(i*7+13)%4]);
+    const LEVEL_TITLES = [
+      { max: 2, title: "Beginner" },
+      { max: 5, title: "Getting Consistent" },
+      { max: 10, title: "Habit Builder" },
+      { max: 20, title: "Disciplined" },
+      { max: Infinity, title: "Legend" }
+    ];
 
-      function toggleHabit(id, e) {
-        const rect = e.currentTarget.getBoundingClientRect();
-        setHabits(prev => prev.map(h => {
-          if (h.id !== id) return h;
-          const completing = !h.completedToday;
-          if (completing) {
-            setXP(x => x + h.xpPerCompletion);
-            setCelebration({ x: rect.left + rect.width/2, y: rect.top });
-            setTimeout(() => setCelebration(null), 800);
+    function getLevelTitle(level) {
+      for (const t of LEVEL_TITLES) if (level <= t.max) return t.title;
+      return "Legend";
+    }
+
+    function getLevelInfo(xp) {
+      let level = 1;
+      let cum = 0;
+      while (true) {
+        const needed = level * 100;
+        if (xp < cum + needed) {
+          return { level: level, xpIntoLevel: xp - cum, xpNeeded: needed };
+        }
+        cum += needed;
+        level++;
+      }
+    }
+
+    function addXP(amount) {
+      totalXP += amount;
+      localStorage.setItem("totalXP", String(totalXP));
+      renderLevel();
+    }
+
+    function renderLevel() {
+      const info = getLevelInfo(totalXP);
+      document.getElementById("levelBadge").textContent = info.level;
+      document.getElementById("levelName").textContent = "Level " + info.level;
+      document.getElementById("levelTitle").textContent = getLevelTitle(info.level);
+      document.getElementById("levelXPText").textContent = info.xpIntoLevel + " / " + info.xpNeeded + " XP";
+      document.getElementById("levelProgressFill").style.width = ((info.xpIntoLevel / info.xpNeeded) * 100) + "%";
+    }
+
+    function todayString() { return new Date().toISOString().split("T")[0]; }
+    function last7Days() {
+      const days = [];
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        days.push(d.toISOString().split("T")[0]);
+      }
+      return days;
+    }
+    const dayLabels = DAY_NAMES_SHORT;
+
+    function showPage(pageId) {
+      document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+      document.getElementById(pageId).classList.add("active");
+    }
+
+    const onboarding = document.getElementById("onboarding");
+    const app = document.getElementById("app");
+    if (localStorage.getItem("onboarded") === "true") {
+      onboarding.style.display = "none";
+      app.style.display = "block";
+      document.getElementById("page-home").classList.add("reveal");
+    }
+
+    const ONBOARD_Q1_OPTIONS = [
+      { icon: "🔥", label: "A streak that actually sticks" },
+      { icon: "🚀", label: "More output, less drag" },
+      { icon: "🧘", label: "A calmer, steadier mind" },
+      { icon: "🎯", label: "Consistency, finally" }
+    ];
+    const ONBOARD_Q2_OPTIONS = [
+      { icon: "🌅", label: "Early riser" },
+      { icon: "🌙", label: "Night owl" },
+      { icon: "📋", label: "Planner, always" },
+      { icon: "🎲", label: "Wing it and adjust" }
+    ];
+    const ONBOARD_Q3_OPTIONS = [
+      { icon: "⏰", label: "No time in the day" },
+      { icon: "💪", label: "Motivation fades fast" },
+      { icon: "🧠", label: "I just forget" },
+      { icon: "😅", label: "Starting is the hard part" }
+    ];
+
+    let onboardAnswers = { goal: null, style: null, challenge: null };
+
+    function showOnboardStep(stepId) {
+      document.querySelectorAll(".onboard-step").forEach(function(s) { s.classList.remove("active"); });
+      document.getElementById(stepId).classList.add("active");
+    }
+
+    function buildOnboardOptions(containerId, options, answerKey, nextStepId) {
+      const container = document.getElementById(containerId);
+      container.innerHTML = "";
+      options.forEach(function(opt) {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "onboard-option";
+        btn.textContent = opt.icon + " " + opt.label;
+        btn.addEventListener("click", function() {
+          onboardAnswers[answerKey] = opt.icon + " " + opt.label;
+          if (nextStepId) {
+            showOnboardStep(nextStepId);
           } else {
-            setXP(x => Math.max(0, x - h.xpPerCompletion));
+            finishOnboardQuiz();
           }
-          return { ...h, completedToday: completing };
-        }));
+        });
+        container.appendChild(btn);
+      });
+    }
+
+    function finishOnboardQuiz() {
+      const name = localStorage.getItem("userName") || "there";
+      document.getElementById("onboardSummaryName").textContent = "Nice to meet you, " + name + "!";
+      document.getElementById("onboardSummaryText").textContent =
+        "You want " + (onboardAnswers.goal || "a streak that actually sticks").toLowerCase() +
+        ", you're a " + (onboardAnswers.style || "planner, always").toLowerCase() +
+        ", and " + (onboardAnswers.challenge || "starting is the hard part").toLowerCase() + " tends to get in your way. Let's get started.";
+      localStorage.setItem("onboardAnswers", JSON.stringify(onboardAnswers));
+      showOnboardStep("onboardStep6");
+    }
+
+    buildOnboardOptions("onboardQ1", ONBOARD_Q1_OPTIONS, "goal", "onboardStep4");
+    buildOnboardOptions("onboardQ2", ONBOARD_Q2_OPTIONS, "style", "onboardStep5");
+    buildOnboardOptions("onboardQ3", ONBOARD_Q3_OPTIONS, "challenge", null);
+
+    document.getElementById("onboardNext1").addEventListener("click", function() {
+      showOnboardStep("onboardStep2");
+    });
+
+    document.getElementById("onboardNext2").addEventListener("click", function() {
+      const nameInput = document.getElementById("onboardNameInput");
+      const name = nameInput.value.trim();
+      if (!name) { nameInput.focus(); return; }
+      localStorage.setItem("userName", name);
+      updateGreeting();
+      showOnboardStep("onboardStep3");
+    });
+
+    document.getElementById("onboardFinishBtn").addEventListener("click", function() {
+      localStorage.setItem("onboarded", "true");
+      onboarding.style.display = "none";
+      app.style.display = "block";
+      document.getElementById("page-home").classList.add("reveal");
+    });
+
+    function updateGreeting() {
+      const el = document.getElementById("userGreeting");
+      if (!el) return;
+      const name = localStorage.getItem("userName");
+      el.textContent = name ? "Hi, " + name : "";
+    }
+    updateGreeting();
+
+    /* ---------- Mood tagging (separate from habit check-in, never blocks it) ---------- */
+
+    const MOOD_OPTIONS = ["😊", "😐", "😞", "😣", "😴"];
+
+    function getMoodLog() {
+      return JSON.parse(localStorage.getItem("moodLog") || "{}");
+    }
+    function setMoodForDate(dateStr, emoji) {
+      const log = getMoodLog();
+      log[dateStr] = emoji;
+      localStorage.setItem("moodLog", JSON.stringify(log));
+    }
+
+    function renderMoodCard() {
+      const today = todayString();
+      const log = getMoodLog();
+      const options = document.getElementById("moodOptions");
+      const question = document.getElementById("moodQuestion");
+      if (!options || !question) return;
+      options.innerHTML = "";
+      MOOD_OPTIONS.forEach(function(emoji) {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "mood-btn" + (log[today] === emoji ? " selected" : "");
+        btn.textContent = emoji;
+        btn.addEventListener("click", function() {
+          setMoodForDate(today, emoji);
+          renderMoodCard();
+          renderMoodWeek();
+        });
+        options.appendChild(btn);
+      });
+      question.textContent = log[today] ? "Today's mood: " + log[today] : "How are you feeling today?";
+    }
+
+    function cycleMood(dateStr) {
+      const log = getMoodLog();
+      const current = log[dateStr];
+      const idx = MOOD_OPTIONS.indexOf(current);
+      const next = (idx === -1) ? MOOD_OPTIONS[0] : (idx + 1 < MOOD_OPTIONS.length ? MOOD_OPTIONS[idx + 1] : null);
+      if (next === null) { delete log[dateStr]; } else { log[dateStr] = next; }
+      localStorage.setItem("moodLog", JSON.stringify(log));
+      renderMoodWeek();
+      if (dateStr === todayString()) renderMoodCard();
+    }
+
+    function renderMoodWeek() {
+      const container = document.getElementById("moodWeekRow");
+      if (!container) return;
+      container.innerHTML = "";
+      const week = last7Days();
+      const log = getMoodLog();
+      week.forEach(function(dateStr) {
+        const dayDiv = document.createElement("div");
+        dayDiv.className = "day-dot";
+        const label = document.createElement("div");
+        label.textContent = dayLabels[new Date(dateStr).getDay()];
+        const cell = document.createElement("div");
+        cell.className = "mood-cell";
+        cell.textContent = log[dateStr] || "";
+        cell.title = "Tap to set mood for " + dateStr;
+        cell.addEventListener("click", function() { cycleMood(dateStr); });
+        dayDiv.appendChild(label);
+        dayDiv.appendChild(cell);
+        container.appendChild(dayDiv);
+      });
+    }
+
+    renderMoodCard();
+
+    document.getElementById("dashboardSettingsBtn").addEventListener("click", function() {
+      document.querySelector('.nav-btn[data-page="settings"]').click();
+    });
+
+    document.querySelectorAll(".nav-btn").forEach(function(btn) {
+      btn.addEventListener("click", function() {
+        if (btn.dataset.page === "leagues" && !isPremiumUser()) {
+          openHubPage("page-premium");
+          return;
+        }
+        document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        showPage("page-" + btn.dataset.page);
+        if (btn.dataset.page === "stats") { renderStats(); renderHeatmap(); renderMoodWeek(); }
+        if (btn.dataset.page === "leagues") { closeLeagueDetail(); syncPlayerDoc().then(renderPublicLeaderboard); renderMyLeagues(); }
+      });
+    });
+
+    document.getElementById("backBtn").addEventListener("click", function() {
+      document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
+      document.querySelector('.nav-btn[data-page="home"]').classList.add("active");
+      showPage("page-habits");
+      renderHabits();
+    });
+
+    /* ---------- Dashboard hub tiles ---------- */
+
+    function openHubPage(pageId, onOpen) {
+      document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
+      document.querySelector('.nav-btn[data-page="home"]').classList.add("active");
+      showPage(pageId);
+      if (onOpen) onOpen();
+    }
+
+    document.querySelectorAll(".hub-tile").forEach(function(tile) {
+      tile.addEventListener("click", function() {
+        const target = tile.dataset.hub;
+        if ((target === "leagues" || target === "journal") && !isPremiumUser()) {
+          openHubPage("page-premium");
+          return;
+        }
+        if (target === "stats" || target === "leagues" || target === "settings") {
+          document.querySelector('.nav-btn[data-page="' + target + '"]').click();
+        } else if (target === "habits") {
+          openHubPage("page-habits", renderHabits);
+        } else if (target === "badges") {
+          openHubPage("page-badges", renderBadges);
+        } else if (target === "journal") {
+          openHubPage("page-journal", renderJournal);
+        } else if (target === "premium") {
+          openHubPage("page-premium");
+        }
+      });
+    });
+
+    document.getElementById("habitsBackBtn").addEventListener("click", function() { showPage("page-home"); });
+    document.getElementById("badgesBackBtn").addEventListener("click", function() { showPage("page-home"); });
+    document.getElementById("journalBackBtn").addEventListener("click", function() { showPage("page-home"); });
+    document.getElementById("premiumCloseBtn").addEventListener("click", function() { showPage("page-home"); });
+
+    /* ---------- Premium ---------- */
+
+    function refreshPremiumUI() {
+      const premium = isPremiumUser();
+      const statusEl = document.getElementById("premiumStatusText");
+      if (statusEl) statusEl.textContent = premium ? "You're Premium ✨ — thank you!" : "You're on the Free plan";
+      const monthlyBtn = document.getElementById("buyMonthlyBtn");
+      const onceBtn = document.getElementById("buyOnceBtn");
+      if (monthlyBtn) {
+        monthlyBtn.href = STRIPE_MONTHLY_LINK;
+        monthlyBtn.style.display = premium ? "none" : "block";
+      }
+      if (onceBtn) {
+        onceBtn.href = STRIPE_ONCE_LINK;
+        onceBtn.style.display = premium ? "none" : "block";
+      }
+      document.querySelectorAll(".hub-tile").forEach(function(tile) {
+        const target = tile.dataset.hub;
+        const label = tile.querySelector(".hub-label");
+        if (!label) return;
+        const locked = (target === "leagues" || target === "journal") && !premium;
+        label.textContent = label.textContent.replace(" 🔒", "") + (locked ? " 🔒" : "");
+      });
+    }
+
+    function redeemCode() {
+      const input = document.getElementById("redeemCodeInput");
+      const code = input.value.trim().toUpperCase();
+      if (!code) return;
+      if (!FIREBASE_READY) {
+        alert("Redeeming codes needs the same Firebase setup as Leagues — see the comment above the Leagues section in the script.");
+        return;
+      }
+      db.collection("licenseCodes").doc(code).get().then(function(doc) {
+        if (!doc.exists) { alert("That code isn't valid."); return; }
+        const data = doc.data();
+        if (data.used) { alert("That code has already been used."); return; }
+        return db.collection("licenseCodes").doc(code).set({
+          used: true, redeemedAt: firebase.firestore.FieldValue.serverTimestamp()
+        }, { merge: true }).then(function() {
+          localStorage.setItem("isPremium", "true");
+          input.value = "";
+          refreshPremiumUI();
+          alert("Premium unlocked! Thank you 🎉");
+        });
+      }).catch(function(err) {
+        console.error(err);
+        alert("Couldn't check that code — check the browser console.");
+      });
+    }
+
+    document.getElementById("redeemCodeBtn").addEventListener("click", redeemCode);
+    refreshPremiumUI();
+
+    function renderJournal() {
+      const container = document.getElementById("journalList");
+      const emptyMsg = document.getElementById("journalEmpty");
+      container.innerHTML = "";
+      const activeHabits = habits.filter(h => !h.archived);
+      emptyMsg.style.display = activeHabits.length === 0 ? "block" : "none";
+      activeHabits.forEach(function(habit) {
+        const card = document.createElement("div");
+        card.className = "stat-habit";
+        const name = document.createElement("div");
+        name.className = "name";
+        name.textContent = habit.name;
+        const textarea = document.createElement("textarea");
+        textarea.placeholder = "Why does this habit matter to you?";
+        textarea.value = habit.notes || "";
+        textarea.style.cssText = "width:100%;min-height:70px;padding:12px;border-radius:10px;border:1px solid var(--line);font-family:'Inter',sans-serif;font-size:14px;resize:vertical;background:var(--surface-2);color:var(--text);margin-top:8px;box-sizing:border-box;";
+        textarea.addEventListener("input", function() {
+          habit.notes = textarea.value;
+          localStorage.setItem("habits", JSON.stringify(habits));
+        });
+        card.appendChild(name);
+        card.appendChild(textarea);
+        container.appendChild(card);
+      });
+    }
+
+    document.querySelectorAll(".heatmap-tab").forEach(function(tab) {
+      tab.addEventListener("click", function() {
+        document.querySelectorAll(".heatmap-tab").forEach(t => t.classList.remove("active"));
+        tab.classList.add("active");
+        currentHeatmapRange = tab.dataset.range;
+        renderHeatmap();
+      });
+    });
+
+    const themeToggle = document.getElementById("themeToggle");
+    if (localStorage.getItem("theme") === "light") document.body.classList.add("light");
+    themeToggle.addEventListener("click", function() {
+      document.body.classList.toggle("light");
+      localStorage.setItem("theme", document.body.classList.contains("light") ? "light" : "dark");
+    });
+
+    const reminderInput = document.getElementById("reminderTime");
+    const savedTime = localStorage.getItem("reminderTime");
+    if (savedTime) reminderInput.value = savedTime;
+    reminderInput.addEventListener("change", function() {
+      localStorage.setItem("reminderTime", reminderInput.value);
+    });
+    document.getElementById("enableNotif").addEventListener("click", function() {
+      if (!("Notification" in window)) { alert("Not supported in this browser."); return; }
+      Notification.requestPermission().then(function(p) {
+        if (p === "granted") alert("Reminders enabled! Keep a tab open around your reminder time.");
+      });
+    });
+    setInterval(function() {
+      if (!("Notification" in window) || Notification.permission !== "granted") return;
+      const now = new Date();
+      const currentTime = now.toTimeString().slice(0,5);
+      const today = todayString();
+
+      const time = localStorage.getItem("reminderTime");
+      const alreadyNotified = localStorage.getItem("notifiedDate") === today;
+      if (time && currentTime === time && !alreadyNotified) {
+        const undone = habits.filter(h => !h.archived && h.lastDone !== today);
+        if (undone.length > 0) new Notification("Habit Tracker", { body: undone.length + " habit(s) still to do today!" });
+        localStorage.setItem("notifiedDate", today);
       }
 
-      function addHabit() {
-        if (!newHabit.name.trim()) return;
-        setHabits(prev => [...prev, {
-          id: Date.now().toString(),
-          name: newHabit.name, icon: newHabit.icon, color: newHabit.color,
-          streak:0, completedToday:false, frequency:'Daily', xpPerCompletion:10,
-        }]);
-        setNewHabit({ name:'', icon:'⚡', color:'#7c3aed' });
-        setShowAdd(false);
+      habits.forEach(function(habit, index) {
+        if (habit.archived || !habit.reminderTime) return;
+        if (habit.reminderTime !== currentTime || habit.lastDone === today) return;
+        const key = "habitNotified_" + index + "_" + today;
+        if (localStorage.getItem(key) === "true") return;
+        const icon = habit.icon || categoryInfo(habit.category).icon;
+        new Notification("Habit Tracker", { body: icon + " Time for: " + habit.name });
+        localStorage.setItem(key, "true");
+      });
+    }, 30000);
+
+    /* ---------- Calm background music (synthesized ambient pad, no audio files) ---------- */
+
+    let calmAudioCtx = null;
+    let calmNodes = [];
+    let calmMasterGain = null;
+    let calmMusicPlaying = false;
+
+    function getCalmVolume() {
+      const v = localStorage.getItem("calmMusicVolume");
+      return v !== null ? parseInt(v, 10) : 40;
+    }
+
+    function startCalmMusic() {
+      if (calmMusicPlaying) return;
+      if (!calmAudioCtx) {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContextClass) { alert("Your browser doesn't support Web Audio."); return; }
+        calmAudioCtx = new AudioContextClass();
+      }
+      if (calmAudioCtx.state === "suspended") calmAudioCtx.resume();
+
+      calmMasterGain = calmAudioCtx.createGain();
+      calmMasterGain.gain.value = (getCalmVolume() / 100) * 0.15;
+      calmMasterGain.connect(calmAudioCtx.destination);
+
+      const filter = calmAudioCtx.createBiquadFilter();
+      filter.type = "lowpass";
+      filter.frequency.value = 900;
+      filter.connect(calmMasterGain);
+
+      const freqs = [130.81, 164.81, 196.00, 261.63];
+      calmNodes = [];
+      freqs.forEach(function(freq, i) {
+        const osc = calmAudioCtx.createOscillator();
+        osc.type = "sine";
+        osc.frequency.value = freq;
+
+        const oscGain = calmAudioCtx.createGain();
+        const baseLevel = 0.5 / freqs.length;
+        oscGain.gain.value = baseLevel;
+
+        const lfo = calmAudioCtx.createOscillator();
+        lfo.type = "sine";
+        lfo.frequency.value = 0.05 + i * 0.02;
+        const lfoGain = calmAudioCtx.createGain();
+        lfoGain.gain.value = baseLevel * 0.4;
+        lfo.connect(lfoGain);
+        lfoGain.connect(oscGain.gain);
+
+        osc.connect(oscGain);
+        oscGain.connect(filter);
+        osc.start();
+        lfo.start();
+        calmNodes.push(osc, lfo);
+      });
+
+      calmMusicPlaying = true;
+      localStorage.setItem("calmMusicOn", "true");
+      document.getElementById("calmMusicToggle").textContent = "On";
+    }
+
+    function stopCalmMusic() {
+      if (!calmMusicPlaying) return;
+      calmNodes.forEach(function(node) {
+        try { node.stop(); } catch (e) {}
+      });
+      calmNodes = [];
+      if (calmMasterGain) { calmMasterGain.disconnect(); calmMasterGain = null; }
+      calmMusicPlaying = false;
+      localStorage.setItem("calmMusicOn", "false");
+      document.getElementById("calmMusicToggle").textContent = "Off";
+    }
+
+    document.getElementById("calmMusicToggle").addEventListener("click", function() {
+      if (calmMusicPlaying) stopCalmMusic(); else startCalmMusic();
+    });
+
+    const calmVolumeSlider = document.getElementById("calmMusicVolume");
+    calmVolumeSlider.value = getCalmVolume();
+    calmVolumeSlider.addEventListener("input", function() {
+      localStorage.setItem("calmMusicVolume", calmVolumeSlider.value);
+      if (calmMasterGain) {
+        calmMasterGain.gain.value = (calmVolumeSlider.value / 100) * 0.15;
+      }
+    });
+
+    /* ---------- Backup / restore ---------- */
+
+    document.getElementById("exportBtn").addEventListener("click", function() {
+      const data = {
+        exportedAt: new Date().toISOString(),
+        habits: habits,
+        totalXP: totalXP,
+        theme: localStorage.getItem("theme") || "dark",
+        reminderTime: localStorage.getItem("reminderTime") || ""
+      };
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "habit-tracker-backup-" + todayString() + ".json";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    });
+
+    document.getElementById("importFile").addEventListener("change", function(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function() {
+        let data;
+        try {
+          data = JSON.parse(reader.result);
+        } catch (err) {
+          alert("That file isn't valid JSON.");
+          e.target.value = "";
+          return;
+        }
+        if (!data || !Array.isArray(data.habits)) {
+          alert("This doesn't look like a Habit Tracker backup file.");
+          e.target.value = "";
+          return;
+        }
+        const confirmed = confirm("This will replace your current habits and XP with the backup. Continue?");
+        if (!confirmed) { e.target.value = ""; return; }
+
+        habits = data.habits;
+        habits.forEach(h => {
+          if (!h.history) h.history = [];
+          if (!h.badges) h.badges = [];
+          if (h.bestStreak === undefined) h.bestStreak = h.streak || 0;
+          if (h.notes === undefined) h.notes = "";
+          if (!h.category) h.category = "other";
+          if (!h.color) h.color = HABIT_COLORS[0];
+          if (!h.frequency) h.frequency = { type: "daily" };
+          if (!h.goalType) h.goalType = "check";
+          if (!h.dailyProgress) h.dailyProgress = {};
+      if (h.archived === undefined) h.archived = false;
+      if (h.icon === undefined) h.icon = "";
+      if (h.description === undefined) h.description = "";
+      if (h.reminderTime === undefined) h.reminderTime = "";
+      if (!h.id) h.id = "h_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 8);
+      if (h.chainAfter === undefined) h.chainAfter = "";
+        });
+        totalXP = typeof data.totalXP === "number" ? data.totalXP : 0;
+        localStorage.setItem("totalXP", String(totalXP));
+
+        if (data.theme === "light") {
+          document.body.classList.add("light");
+          localStorage.setItem("theme", "light");
+        } else {
+          document.body.classList.remove("light");
+          localStorage.setItem("theme", "dark");
+        }
+        if (data.reminderTime) {
+          localStorage.setItem("reminderTime", data.reminderTime);
+          document.getElementById("reminderTime").value = data.reminderTime;
+        }
+
+        saveAndRender();
+        renderLevel();
+        alert("Backup restored!");
+        e.target.value = "";
+      };
+      reader.readAsText(file);
+    });
+
+    /* ---------- Leagues (private leagues + public leaderboard) & Cloud Sync ---------- */
+    /*
+      Needs a free Firebase project, because comparing streaks between
+      friends — and backing up your habits across devices — means the
+      data has to live somewhere other than each person's own browser.
+      Setup (~5 min, free):
+
+      1. https://console.firebase.google.com -> Add project.
+      2. Build -> Firestore Database -> Create database -> Test mode.
+      3. Project settings (gear icon) -> General -> "Your apps" ->
+         click </> (web) -> register app -> copy the firebaseConfig
+         object into FIREBASE_CONFIG below.
+      4. Firestore -> Rules tab -> paste:
+
+           rules_version = '2';
+           service cloud.firestore {
+             match /databases/{database}/documents {
+               match /players/{playerId} { allow read, write: if true; }
+               match /leagues/{code}     { allow read, write: if true; }
+               match /backups/{code}     { allow read, write: if true; }
+               match /licenseCodes/{code}{ allow read, write: if true; }
+             }
+           }
+
+         Heads up: there's no real login system, so anyone with your
+         Firebase config could technically write to this data. Fine for
+         a fun leaderboard with friends; don't put anything sensitive
+         in it.
+
+      The <script> tags for Firebase itself are already in <head> above.
+      Until FIREBASE_CONFIG is filled in, the Leagues tab still shows up
+      but tells the user it isn't set up yet, instead of breaking.
+    */
+
+    const FIREBASE_CONFIG = {
+      apiKey: "PASTE_YOUR_API_KEY",
+      authDomain: "PASTE_YOUR_PROJECT.firebaseapp.com",
+      projectId: "PASTE_YOUR_PROJECT_ID",
+      storageBucket: "PASTE_YOUR_PROJECT.appspot.com",
+      messagingSenderId: "PASTE_YOUR_SENDER_ID",
+      appId: "PASTE_YOUR_APP_ID"
+    };
+
+    const FIREBASE_READY = typeof firebase !== "undefined" && FIREBASE_CONFIG.apiKey.indexOf("PASTE_YOUR") === -1;
+    let db = null;
+    if (FIREBASE_READY) {
+      firebase.initializeApp(FIREBASE_CONFIG);
+      db = firebase.firestore();
+    }
+    const NOT_READY_MSG = "<p class='empty' style='margin:8px 0;'>Leagues aren't set up yet — add your Firebase config in the script (see the comment above the Leagues section).</p>";
+
+    function getDeviceId() {
+      let id = localStorage.getItem("leagueDeviceId");
+      if (!id) {
+        id = "p_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 10);
+        localStorage.setItem("leagueDeviceId", id);
+      }
+      return id;
+    }
+
+    function getPlayerName() {
+      let name = localStorage.getItem("leaguePlayerName");
+      if (!name) {
+        name = (window.prompt("Pick a display name for leagues/leaderboards:", "") || "").trim();
+        if (!name) name = "Anonymous";
+        localStorage.setItem("leaguePlayerName", name);
+      }
+      return name;
+    }
+
+    function isPublic() { return localStorage.getItem("leaguePublicOptIn") === "true"; }
+
+    function getBestStreak() {
+      return habits.filter(h => !h.archived).reduce((max, h) => Math.max(max, h.streak || 0), 0);
+    }
+
+    function syncPlayerDoc() {
+      if (!FIREBASE_READY) return Promise.resolve();
+      return db.collection("players").doc(getDeviceId()).set({
+        name: getPlayerName(),
+        bestStreak: getBestStreak(),
+        public: isPublic(),
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
+    }
+
+    function getOwnLeagueCodes() {
+      if (!FIREBASE_READY) return Promise.resolve([]);
+      return db.collection("players").doc(getDeviceId()).get().then(function(doc) {
+        const data = doc.data();
+        return (data && data.leagues) || [];
+      });
+    }
+
+    function generateLeagueCode() {
+      return Math.random().toString(36).slice(2, 8).toUpperCase();
+    }
+
+    function createLeague() {
+      if (!FIREBASE_READY) { alert("Leagues aren't set up yet — see the comment above the Leagues section in the script."); return; }
+      const name = (window.prompt("Name your league:", "") || "").trim();
+      if (!name) return;
+      const code = generateLeagueCode();
+      db.collection("leagues").doc(code).set({
+        name: name, code: code, createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      }).then(function() {
+        return db.collection("players").doc(getDeviceId()).set({
+          leagues: firebase.firestore.FieldValue.arrayUnion(code)
+        }, { merge: true });
+      }).then(function() {
+        alert("League \"" + name + "\" created! Share this code with friends: " + code);
+        renderMyLeagues();
+      }).catch(function(err) {
+        console.error(err);
+        alert("Couldn't create the league — check the browser console.");
+      });
+    }
+
+    function joinLeague() {
+      if (!FIREBASE_READY) { alert("Leagues aren't set up yet — see the comment above the Leagues section in the script."); return; }
+      const code = (window.prompt("Enter the league code your friend shared:", "") || "").trim().toUpperCase();
+      if (!code) return;
+      db.collection("leagues").doc(code).get().then(function(doc) {
+        if (!doc.exists) { alert("No league found with that code."); return; }
+        return db.collection("players").doc(getDeviceId()).set({
+          leagues: firebase.firestore.FieldValue.arrayUnion(code)
+        }, { merge: true }).then(function() {
+          alert("Joined \"" + doc.data().name + "\"!");
+          renderMyLeagues();
+        });
+      }).catch(function(err) {
+        console.error(err);
+        alert("Couldn't join the league — check the browser console.");
+      });
+    }
+
+    function rankRow(rank, name, streak, deviceId) {
+      const mine = deviceId === getDeviceId();
+      return "<div class='leader-row" + (mine ? " me" : "") + "'>" +
+        "<span class='rank-num'>" + rank + "</span>" +
+        "<span class='leader-name'>" + name + (mine ? " (you)" : "") + "</span>" +
+        "<span class='leader-streak'>🔥 " + streak + "</span>" +
+        "</div>";
+    }
+
+    function renderPublicLeaderboard() {
+      const container = document.getElementById("publicLeaderboard");
+      if (!FIREBASE_READY) { container.innerHTML = NOT_READY_MSG; return; }
+      container.innerHTML = "<p class='empty' style='margin:8px 0;'>Loading…</p>";
+      db.collection("players").where("public", "==", true).orderBy("bestStreak", "desc").limit(50).get()
+        .then(function(snapshot) {
+          if (snapshot.empty) {
+            container.innerHTML = "<p class='empty' style='margin:8px 0;'>No public players yet — be the first!</p>";
+            return;
+          }
+          let html = "";
+          let rank = 0;
+          snapshot.forEach(function(doc) {
+            rank++;
+            const d = doc.data();
+            html += rankRow(rank, d.name || "Anonymous", d.bestStreak || 0, doc.id);
+          });
+          container.innerHTML = html;
+        })
+        .catch(function(err) {
+          console.error(err);
+          container.innerHTML = "<p class='empty' style='margin:8px 0;'>Couldn't load the leaderboard. If the console shows a link to create a missing index, click it, wait a minute, then reopen this tab.</p>";
+        });
+    }
+
+    function renderMyLeagues() {
+      const listEl = document.getElementById("myLeaguesList");
+      if (!FIREBASE_READY) { listEl.innerHTML = NOT_READY_MSG; return; }
+      listEl.innerHTML = "<p class='empty' style='margin:8px 0;'>Loading…</p>";
+      getOwnLeagueCodes().then(function(codes) {
+        if (!codes.length) {
+          listEl.innerHTML = "<p class='empty' style='margin:8px 0;'>No leagues yet — create one or join a friend's.</p>";
+          return;
+        }
+        Promise.all(codes.map(code => db.collection("leagues").doc(code).get())).then(function(docs) {
+          let html = "";
+          docs.forEach(function(doc) {
+            if (!doc.exists) return;
+            const d = doc.data();
+            html += "<div class='league-card' data-code='" + d.code + "' data-name='" + d.name + "'>" +
+              "<span>" + d.name + "</span><span class='league-code'>" + d.code + "</span></div>";
+          });
+          listEl.innerHTML = html || "<p class='empty' style='margin:8px 0;'>No leagues yet.</p>";
+          listEl.querySelectorAll(".league-card").forEach(function(card) {
+            card.addEventListener("click", function() { openLeagueDetail(card.dataset.code, card.dataset.name); });
+          });
+        });
+      });
+    }
+
+    function openLeagueDetail(code, name) {
+      document.getElementById("myLeaguesSection").style.display = "none";
+      document.getElementById("leagueDetailView").style.display = "block";
+      document.getElementById("leagueDetailName").textContent = name + " (" + code + ")";
+      const board = document.getElementById("leagueLeaderboard");
+      board.innerHTML = "<p class='empty' style='margin:8px 0;'>Loading…</p>";
+      db.collection("players").where("leagues", "array-contains", code).orderBy("bestStreak", "desc").get()
+        .then(function(snapshot) {
+          if (snapshot.empty) {
+            board.innerHTML = "<p class='empty' style='margin:8px 0;'>No members yet.</p>";
+            return;
+          }
+          let html = "";
+          let rank = 0;
+          snapshot.forEach(function(doc) {
+            rank++;
+            const d = doc.data();
+            html += rankRow(rank, d.name || "Anonymous", d.bestStreak || 0, doc.id);
+          });
+          board.innerHTML = html;
+        })
+        .catch(function(err) {
+          console.error(err);
+          board.innerHTML = "<p class='empty' style='margin:8px 0;'>Couldn't load this league. If the console shows a link to create a missing index, click it, then try again.</p>";
+        });
+    }
+
+    function closeLeagueDetail() {
+      document.getElementById("leagueDetailView").style.display = "none";
+      document.getElementById("myLeaguesSection").style.display = "block";
+    }
+
+    document.getElementById("togglePublicBtn").textContent = isPublic() ? "On" : "Off";
+    document.getElementById("togglePublicBtn").addEventListener("click", function() {
+      const next = !isPublic();
+      localStorage.setItem("leaguePublicOptIn", String(next));
+      this.textContent = next ? "On" : "Off";
+      syncPlayerDoc().then(renderPublicLeaderboard);
+    });
+    document.getElementById("createLeagueBtn").addEventListener("click", createLeague);
+    document.getElementById("joinLeagueBtn").addEventListener("click", joinLeague);
+    document.getElementById("leagueBackBtn").addEventListener("click", closeLeagueDetail);
+
+    /* ---------- Cloud Sync (backs up your actual habits across devices) ---------- */
+
+    function getSyncCode() {
+      let code = localStorage.getItem("cloudSyncCode");
+      if (!code) {
+        code = Math.random().toString(36).slice(2, 10).toUpperCase();
+        localStorage.setItem("cloudSyncCode", code);
+      }
+      return code;
+    }
+
+    function syncToCloud() {
+      if (!FIREBASE_READY) return Promise.resolve();
+      return db.collection("backups").doc(getSyncCode()).set({
+        habits: habits,
+        totalXP: totalXP,
+        theme: localStorage.getItem("theme") || "dark",
+        reminderTime: localStorage.getItem("reminderTime") || "",
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      }).then(function() {
+        const el = document.getElementById("cloudSyncStatus");
+        if (el) el.textContent = "Synced just now";
+      }).catch(function(err) {
+        console.error(err);
+        const el = document.getElementById("cloudSyncStatus");
+        if (el) el.textContent = "Sync failed — check console";
+      });
+    }
+
+    function restoreFromCloud() {
+      if (!FIREBASE_READY) { alert("Cloud sync isn't set up yet — see the comment above the Leagues section in the script."); return; }
+      db.collection("backups").doc(getSyncCode()).get().then(function(doc) {
+        if (!doc.exists) { alert("No cloud backup found for this sync code yet."); return; }
+        const data = doc.data();
+        const confirmed = confirm("This will replace your current habits and XP with the cloud backup saved under this sync code. Continue?");
+        if (!confirmed) return;
+
+        habits = data.habits || [];
+        habits.forEach(h => {
+          if (!h.history) h.history = [];
+          if (!h.badges) h.badges = [];
+          if (h.bestStreak === undefined) h.bestStreak = h.streak || 0;
+          if (h.notes === undefined) h.notes = "";
+          if (!h.category) h.category = "other";
+          if (!h.color) h.color = HABIT_COLORS[0];
+          if (!h.frequency) h.frequency = { type: "daily" };
+          if (!h.goalType) h.goalType = "check";
+          if (!h.dailyProgress) h.dailyProgress = {};
+      if (h.archived === undefined) h.archived = false;
+      if (h.icon === undefined) h.icon = "";
+      if (h.description === undefined) h.description = "";
+      if (h.reminderTime === undefined) h.reminderTime = "";
+      if (!h.id) h.id = "h_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 8);
+      if (h.chainAfter === undefined) h.chainAfter = "";
+        });
+        totalXP = typeof data.totalXP === "number" ? data.totalXP : 0;
+        localStorage.setItem("totalXP", String(totalXP));
+
+        if (data.theme === "light") {
+          document.body.classList.add("light");
+          localStorage.setItem("theme", "light");
+        } else {
+          document.body.classList.remove("light");
+          localStorage.setItem("theme", "dark");
+        }
+        if (data.reminderTime) {
+          localStorage.setItem("reminderTime", data.reminderTime);
+          document.getElementById("reminderTime").value = data.reminderTime;
+        }
+
+        saveAndRender();
+        renderLevel();
+        alert("Restored from cloud!");
+      }).catch(function(err) {
+        console.error(err);
+        alert("Couldn't restore — check the browser console.");
+      });
+    }
+
+    document.getElementById("syncCodeDisplay").textContent = getSyncCode();
+    document.getElementById("cloudRestoreBtn").addEventListener("click", restoreFromCloud);
+    document.getElementById("useOtherCodeBtn").addEventListener("click", function() {
+      const entered = (prompt("Enter your existing sync code (from another device):", "") || "").trim().toUpperCase();
+      if (!entered) return;
+      localStorage.setItem("cloudSyncCode", entered);
+      document.getElementById("syncCodeDisplay").textContent = entered;
+      restoreFromCloud();
+    });
+
+    /* ---------- Category / frequency helpers ---------- */
+
+    function categoryInfo(id) {
+      return CATEGORIES.find(c => c.id === id) || CATEGORIES[CATEGORIES.length - 1];
+    }
+
+    function getPeriodKey(dateStr, period) {
+      const d = new Date(dateStr);
+      if (period === "month") {
+        return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0");
+      }
+      const sunday = new Date(d);
+      sunday.setDate(d.getDate() - d.getDay());
+      return sunday.toISOString().split("T")[0];
+    }
+
+    function getPeriodCount(habit, periodKey, period) {
+      return habit.history.filter(function(ds) { return getPeriodKey(ds, period) === periodKey; }).length;
+    }
+
+    function frequencyLabel(habit) {
+      if (!habit.frequency || habit.frequency.type === "daily") return "Daily";
+      if (habit.frequency.type === "count") {
+        const period = habit.frequency.period === "month" ? "month" : "week";
+        const target = habit.frequency.target || 1;
+        const progress = getPeriodCount(habit, getPeriodKey(todayString(), period), period);
+        return progress + "/" + target + " this " + period;
+      }
+      const days = (habit.frequency.days || []).slice().sort();
+      if (days.length === 0 || days.length === 7) return "Daily";
+      return days.map(d => DAY_NAMES_FULL[d]).join(", ");
+    }
+
+    function isScheduledDay(habit, dateStr) {
+      if (!habit.frequency || habit.frequency.type === "daily" || habit.frequency.type === "count") return true;
+      const days = habit.frequency.days || [];
+      if (days.length === 0) return true;
+      const day = new Date(dateStr).getDay();
+      return days.includes(day);
+    }
+
+    function hasMissedScheduledDay(habit, fromDateStr, toDateStr) {
+      const d = new Date(fromDateStr);
+      d.setDate(d.getDate() + 1);
+      const end = new Date(toDateStr);
+      while (d < end) {
+        const ds = d.toISOString().split("T")[0];
+        if (isScheduledDay(habit, ds) && !habit.history.includes(ds)) return true;
+        d.setDate(d.getDate() + 1);
+      }
+      return false;
+    }
+
+    function recalcCountStreak(habit) {
+      const period = habit.frequency.period === "month" ? "month" : "week";
+      const target = habit.frequency.target || 1;
+      const today = todayString();
+
+      if (habit.history.length === 0) {
+        habit.streak = 0;
+        habit.lastDone = null;
+        habit.bestStreak = habit.bestStreak || 0;
+        return;
+      }
+      const sortedHistory = habit.history.slice().sort();
+      habit.lastDone = sortedHistory[sortedHistory.length - 1];
+
+      let streak = 0;
+      let cursor = new Date(today);
+      let first = true;
+      let safety = 0;
+      while (safety < 1000) {
+        safety++;
+        const key = getPeriodKey(cursor.toISOString().split("T")[0], period);
+        const count = getPeriodCount(habit, key, period);
+        if (first) {
+          if (count >= target) streak++;
+          first = false;
+        } else {
+          if (count >= target) { streak++; } else { break; }
+        }
+        if (period === "month") {
+          cursor.setDate(1);
+          cursor.setMonth(cursor.getMonth() - 1);
+        } else {
+          cursor.setDate(cursor.getDate() - 7);
+        }
+        if (cursor.getFullYear() < 2000) break;
+      }
+      habit.streak = streak;
+
+      let best = 0, cur = 0, lastKey = null;
+      const scan = new Date(sortedHistory[0]);
+      const end = new Date(today);
+      while (scan <= end) {
+        const k = getPeriodKey(scan.toISOString().split("T")[0], period);
+        if (k !== lastKey) {
+          const c = getPeriodCount(habit, k, period);
+          if (c >= target) { cur++; if (cur > best) best = cur; } else { cur = 0; }
+          lastKey = k;
+        }
+        scan.setDate(scan.getDate() + 1);
+      }
+      habit.bestStreak = Math.max(habit.bestStreak || 0, best);
+    }
+
+    /* ---------- Add/Edit habit modal ---------- */
+
+    function buildCategorySelect() {
+      const select = document.getElementById("modalCategory");
+      select.innerHTML = "";
+      CATEGORIES.forEach(function(cat) {
+        const opt = document.createElement("option");
+        opt.value = cat.id;
+        opt.textContent = cat.icon + " " + cat.label;
+        select.appendChild(opt);
+      });
+    }
+
+    function buildCategoryFilter() {
+      const select = document.getElementById("categoryFilter");
+      select.innerHTML = "<option value='all'>All categories</option>";
+      CATEGORIES.forEach(function(cat) {
+        const opt = document.createElement("option");
+        opt.value = cat.id;
+        opt.textContent = cat.icon + " " + cat.label;
+        select.appendChild(opt);
+      });
+    }
+
+    function buildChainSelect(excludeIndex) {
+      const select = document.getElementById("modalChainAfter");
+      select.innerHTML = "<option value=''>None — starts its own chain</option>";
+      habits.forEach(function(h, i) {
+        if (h.archived) return;
+        if (i === excludeIndex) return;
+        const opt = document.createElement("option");
+        opt.value = h.id;
+        opt.textContent = (h.icon || categoryInfo(h.category).icon) + " " + h.name;
+        select.appendChild(opt);
+      });
+    }
+
+    function showToast(message) {
+      const toast = document.createElement("div");
+      toast.className = "toast";
+      toast.textContent = message;
+      document.body.appendChild(toast);
+      requestAnimationFrame(function() { toast.classList.add("show"); });
+      setTimeout(function() {
+        toast.classList.remove("show");
+        setTimeout(function() { toast.remove(); }, 300);
+      }, 3000);
+    }
+
+    function suggestNextInChain(habit) {
+      const today = todayString();
+      const next = habits.filter(function(h) {
+        return !h.archived && h.chainAfter === habit.id && h.lastDone !== today;
+      });
+      if (next.length > 0) {
+        const names = next.map(function(h) { return (h.icon || categoryInfo(h.category).icon) + " " + h.name; }).join(", ");
+        showToast("Nice! Next up: " + names);
+      }
+    }
+
+    function matchesFilters(habit) {
+      const matchesSearch = !habitSearchQuery || habit.name.toLowerCase().includes(habitSearchQuery);
+      const matchesCategory = habitCategoryFilter === "all" || habit.category === habitCategoryFilter;
+      return matchesSearch && matchesCategory;
+    }
+
+    document.getElementById("habitSearch").addEventListener("input", function() {
+      habitSearchQuery = this.value.trim().toLowerCase();
+      renderHabits();
+    });
+    document.getElementById("categoryFilter").addEventListener("change", function() {
+      habitCategoryFilter = this.value;
+      renderHabits();
+    });
+
+    function buildDayPicker() {
+      const row = document.getElementById("dayPickerRow");
+      row.innerHTML = "";
+      DAY_NAMES_SHORT.forEach(function(label, i) {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "day-toggle";
+        btn.dataset.day = i;
+        btn.textContent = label;
+        btn.addEventListener("click", function() { btn.classList.toggle("selected"); });
+        row.appendChild(btn);
+      });
+    }
+
+    function renderColorGrid(selectedColor) {
+      const grid = document.getElementById("modalColorGrid");
+      grid.innerHTML = "";
+      HABIT_COLORS.forEach(function(color) {
+        const swatch = document.createElement("button");
+        swatch.type = "button";
+        swatch.className = "color-swatch" + (color === selectedColor ? " selected" : "");
+        swatch.style.background = color;
+        swatch.dataset.color = color;
+        swatch.addEventListener("click", function() {
+          document.querySelectorAll(".color-swatch").forEach(s => s.classList.remove("selected"));
+          swatch.classList.add("selected");
+        });
+        grid.appendChild(swatch);
+      });
+    }
+
+    function toggleDayPickerVisibility() {
+      const type = document.querySelector('input[name="freqType"]:checked').value;
+      document.getElementById("dayPickerRow").style.display = type === "custom" ? "flex" : "none";
+      document.getElementById("countRow").style.display = type === "count" ? "flex" : "none";
+    }
+
+    function toggleQuantityRowVisibility() {
+      const type = document.querySelector('input[name="goalType"]:checked').value;
+      document.getElementById("quantityRow").style.display = type === "quantity" ? "block" : "none";
+    }
+
+    function getProgress(habit, dateStr) {
+      return (habit.dailyProgress && habit.dailyProgress[dateStr]) || 0;
+    }
+
+    function openHabitModal(index) {
+      editingIndex = index;
+      const isEdit = index !== null && index !== undefined;
+      const habit = isEdit ? habits[index] : null;
+
+      document.getElementById("habitModalTitle").textContent = isEdit ? "Edit Habit" : "Add Habit";
+      document.getElementById("modalHabitName").value = habit ? habit.name : "";
+      document.getElementById("modalCategory").value = habit ? habit.category : "other";
+      renderColorGrid(habit ? habit.color : HABIT_COLORS[0]);
+      document.getElementById("modalIcon").value = habit && habit.icon ? habit.icon : "";
+      document.getElementById("modalDescription").value = habit && habit.description ? habit.description : "";
+      document.getElementById("modalReminderTime").value = habit && habit.reminderTime ? habit.reminderTime : "";
+      buildChainSelect(isEdit ? index : null);
+      document.getElementById("modalChainAfter").value = habit && habit.chainAfter ? habit.chainAfter : "";
+
+      const freqType = habit && habit.frequency ? habit.frequency.type : "daily";
+      document.querySelector('input[name="freqType"][value="' + freqType + '"]').checked = true;
+      const selectedDays = habit && habit.frequency && habit.frequency.days ? habit.frequency.days : [];
+      document.querySelectorAll(".day-toggle").forEach(function(btn) {
+        btn.classList.toggle("selected", selectedDays.includes(parseInt(btn.dataset.day, 10)));
+      });
+      document.getElementById("modalCountTarget").value = habit && habit.frequency && habit.frequency.target ? habit.frequency.target : "";
+      document.getElementById("modalCountPeriod").value = habit && habit.frequency && habit.frequency.period === "month" ? "month" : "week";
+      toggleDayPickerVisibility();
+
+      const goalType = habit ? (habit.goalType || "check") : "check";
+      document.querySelector('input[name="goalType"][value="' + goalType + '"]').checked = true;
+      document.getElementById("modalTargetQty").value = habit && habit.targetQty ? habit.targetQty : "";
+      document.getElementById("modalUnit").value = habit && habit.unit ? habit.unit : "";
+      toggleQuantityRowVisibility();
+
+      document.getElementById("habitModal").style.display = "flex";
+      document.getElementById("modalHabitName").focus();
+    }
+
+    function closeHabitModal() {
+      document.getElementById("habitModal").style.display = "none";
+      editingIndex = null;
+    }
+
+    document.querySelectorAll('input[name="freqType"]').forEach(function(r) {
+      r.addEventListener("change", toggleDayPickerVisibility);
+    });
+    document.querySelectorAll('input[name="goalType"]').forEach(function(r) {
+      r.addEventListener("change", toggleQuantityRowVisibility);
+    });
+
+    document.getElementById("addBtn").addEventListener("click", function() { openHabitModal(null); });
+    document.getElementById("modalCancelBtn").addEventListener("click", closeHabitModal);
+
+    document.getElementById("modalSaveBtn").addEventListener("click", function() {
+      const nameInput = document.getElementById("modalHabitName");
+      const name = nameInput.value.trim();
+      if (name === "") { nameInput.focus(); return; }
+
+      if (editingIndex === null && !isPremiumUser() && habits.filter(h => !h.archived).length >= FREE_HABIT_LIMIT) {
+        closeHabitModal();
+        alert("The free plan is limited to " + FREE_HABIT_LIMIT + " active habits. Upgrade to Premium for unlimited habits.");
+        openHubPage("page-premium");
+        return;
       }
 
-      function saveJournal() {
-        setEntries(prev => {
-          const i = prev.findIndex(e => e.date === todayStr);
-          const entry = { date:todayStr, mood, note };
-          if (i>=0) { const n=[...prev]; n[i]=entry; return n; }
-          return [...prev, entry];
+      const category = document.getElementById("modalCategory").value;
+      const selectedSwatch = document.querySelector(".color-swatch.selected");
+      const color = selectedSwatch ? selectedSwatch.dataset.color : HABIT_COLORS[0];
+      const freqType = document.querySelector('input[name="freqType"]:checked').value;
+
+      let frequency;
+      if (freqType === "custom") {
+        const days = Array.from(document.querySelectorAll(".day-toggle.selected")).map(b => parseInt(b.dataset.day, 10));
+        frequency = { type: "custom", days: days.length ? days : [0,1,2,3,4,5,6] };
+      } else if (freqType === "count") {
+        const target = Math.max(1, parseInt(document.getElementById("modalCountTarget").value, 10) || 1);
+        const period = document.getElementById("modalCountPeriod").value === "month" ? "month" : "week";
+        frequency = { type: "count", target: target, period: period };
+      } else {
+        frequency = { type: "daily" };
+      }
+
+      const goalType = document.querySelector('input[name="goalType"]:checked').value;
+      const targetQty = Math.max(1, parseInt(document.getElementById("modalTargetQty").value, 10) || 1);
+      const unit = document.getElementById("modalUnit").value.trim();
+      const icon = document.getElementById("modalIcon").value.trim();
+      const description = document.getElementById("modalDescription").value.trim();
+      const reminderTime = document.getElementById("modalReminderTime").value;
+      const chainAfter = document.getElementById("modalChainAfter").value;
+
+      if (editingIndex !== null) {
+        const habit = habits[editingIndex];
+        habit.name = name;
+        habit.category = category;
+        habit.color = color;
+        habit.frequency = frequency;
+        habit.goalType = goalType;
+        habit.icon = icon;
+        habit.description = description;
+        habit.reminderTime = reminderTime;
+        habit.chainAfter = chainAfter;
+        if (goalType === "quantity") { habit.targetQty = targetQty; habit.unit = unit; }
+      } else {
+        habits.push({
+          id: "h_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 8),
+          name: name, category: category, color: color, frequency: frequency,
+          goalType: goalType, targetQty: goalType === "quantity" ? targetQty : undefined,
+          unit: goalType === "quantity" ? unit : "", dailyProgress: {},
+          icon: icon, description: description, reminderTime: reminderTime, chainAfter: chainAfter,
+          streak: 0, lastDone: null, history: [], badges: [], bestStreak: 0, notes: ""
         });
       }
 
-      const S = {
-        root: {
-          minHeight:'100vh', display:'flex', flexDirection:'column',
-          maxWidth:480, margin:'0 auto', position:'relative',
-        },
-        header: { padding:'32px 20px 16px', flexShrink:0 },
-        nav: { padding:'0 20px 16px', flexShrink:0 },
-        main: { flex:1, overflowY:'auto', padding:'0 20px 40px' },
-      };
+      closeHabitModal();
+      saveAndRender();
+    });
 
-      const tabs = [['today','Today'],['stats','Stats'],['journal','Journal'],['badges','Badges']];
-
-      return (
-        <div style={S.root}>
-          {celebration && <CelebrationBurst x={celebration.x} y={celebration.y} />}
-
-          {/* ── Header ── */}
-          <header style={S.header}>
-            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:16 }}>
-              <div>
-                <p style={{ fontSize:13, fontWeight:500, color:'var(--muted-fg)', marginBottom:2 }}>
-                  {today.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'})}
-                </p>
-                <h1 style={{ fontFamily:'var(--font-display)', fontWeight:800, fontSize:26, lineHeight:1.2 }}>
-                  {completed===total&&total>0 ? '🎉 Crushed it!' : 'Good morning,'}
-                </h1>
-                <h1 style={{ fontFamily:'var(--font-display)', fontWeight:800, fontSize:26, lineHeight:1.2, color:'#a3e635' }}>Alex</h1>
-              </div>
-              <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:4 }}>
-                <div style={{
-                  width:44, height:44, borderRadius:14,
-                  background:'linear-gradient(135deg,#7c3aed,#a855f7)',
-                  display:'flex', alignItems:'center', justifyContent:'center',
-                  fontFamily:'var(--font-display)', fontWeight:700, fontSize:18, color:'#fff',
-                }}>A</div>
-                <span style={{ fontFamily:'var(--font-mono)', fontSize:11, color:'var(--muted-fg)' }}>{xp} XP</span>
-              </div>
-            </div>
-
-            <XPBar xp={xpInLevel} level={level} maxXP={100} />
-
-            {/* Progress row */}
-            <div style={{
-              display:'flex', alignItems:'center', gap:12, marginTop:16, padding:12,
-              borderRadius:20, border:'1.5px solid var(--border)', background:'var(--card)',
-            }}>
-              <div style={{ position:'relative', width:48, height:48, flexShrink:0 }}>
-                <svg width="48" height="48" viewBox="0 0 48 48">
-                  <circle cx="24" cy="24" r="20" fill="none" stroke="#1e1a2e" strokeWidth="4"/>
-                  <circle cx="24" cy="24" r="20" fill="none"
-                    stroke={completed===total&&total>0 ? '#a3e635' : '#7c3aed'}
-                    strokeWidth="4" strokeLinecap="round"
-                    strokeDasharray={2*Math.PI*20}
-                    strokeDashoffset={2*Math.PI*20*(1-completed/(total||1))}
-                    transform="rotate(-90 24 24)"
-                    style={{ transition:'stroke-dashoffset 0.5s ease' }}
-                  />
-                </svg>
-                <span style={{
-                  position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center',
-                  fontFamily:'var(--font-mono)', fontSize:11, fontWeight:600,
-                }}>{completed}/{total}</span>
-              </div>
-              <div style={{ flex:1 }}>
-                <p style={{ fontFamily:'var(--font-display)', fontWeight:600, fontSize:14 }}>Today's Progress</p>
-                <p style={{ fontSize:12, marginTop:2, color:'var(--muted-fg)' }}>
-                  {completed===0 ? 'Start strong — first habit awaits'
-                    : completed===total ? 'All habits complete — legendary!'
-                    : `${total-completed} habit${total-completed>1?'s':''} remaining`}
-                </p>
-              </div>
-              <div style={{ textAlign:'right' }}>
-                <p style={{ fontFamily:'var(--font-mono)', fontSize:13 }}>🔥</p>
-                <p style={{ fontFamily:'var(--font-mono)', fontSize:16, fontWeight:600, color:'#f59e0b' }}>
-                  {Math.max(...habits.map(h=>h.streak),0)}d
-                </p>
-                <p style={{ fontSize:11, color:'var(--muted-fg)' }}>best</p>
-              </div>
-            </div>
-          </header>
-
-          {/* ── Tab Bar ── */}
-          <nav style={S.nav}>
-            <div style={{ display:'flex', gap:4, padding:4, borderRadius:20, background:'var(--muted)' }}>
-              {tabs.map(([id,label]) => (
-                <button key={id} onClick={() => setTab(id)} style={{
-                  flex:1, padding:'8px 0', borderRadius:14,
-                  fontSize:12, fontWeight:600,
-                  background: tab===id ? 'var(--primary)' : 'transparent',
-                  color: tab===id ? '#fff' : 'var(--muted-fg)',
-                  transition:'all 0.2s',
-                }}>{label}</button>
-              ))}
-            </div>
-          </nav>
-
-          {/* ── Main ── */}
-          <main style={S.main} className="fade-in" key={tab}>
-
-            {/* TODAY */}
-            {tab==='today' && (
-              <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
-                {/* Week strip */}
-                <div style={{ display:'flex', gap:6, marginBottom:4 }}>
-                  {weekDates.map(d => {
-                    const ds = d.toISOString().split('T')[0];
-                    const isToday = ds===todayStr;
-                    return (
-                      <button key={ds} onClick={() => setSelectedDay(ds)} style={{
-                        flex:1, display:'flex', flexDirection:'column', alignItems:'center',
-                        padding:'8px 0', borderRadius:14, transition:'all 0.2s',
-                        background: isToday ? 'var(--primary)' : selectedDay===ds ? 'var(--secondary)' : 'var(--muted)',
-                        color: isToday ? '#fff' : selectedDay===ds ? 'var(--fg)' : 'var(--muted-fg)',
-                      }}>
-                        <span style={{ fontSize:11, fontWeight:500 }}>{d.toLocaleDateString('en-US',{weekday:'short'}).slice(0,1)}</span>
-                        <span style={{ fontFamily:'var(--font-mono)', fontSize:14, fontWeight:700 }}>{d.getDate()}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-
-                {habits.map(h => <HabitCard key={h.id} habit={h} onToggle={toggleHabit} />)}
-
-                <button onClick={() => setShowAdd(true)} style={{
-                  display:'flex', alignItems:'center', justifyContent:'center', gap:8,
-                  padding:16, borderRadius:20, border:'2px dashed var(--border)',
-                  color:'var(--muted-fg)', fontSize:14, fontWeight:600, transition:'all 0.2s',
-                }}>
-                  <span style={{ fontSize:18 }}>+</span> Add New Habit
-                </button>
-              </div>
-            )}
-
-            {/* STATS */}
-            {tab==='stats' && (
-              <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
-                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
-                  <StatCard label="Best Streak" value={`${Math.max(...habits.map(h=>h.streak))}d`} sub="Personal best" color="#f59e0b"/>
-                  <StatCard label="Done Today"  value={`${completed}/${total}`} sub="habits" color="#a3e635"/>
-                  <StatCard label="Total XP"    value={`${xp}`} sub={`Level ${level}`} color="#7c3aed"/>
-                  <StatCard label="Rate"        value={`${Math.round((completed/(total||1))*100)}%`} sub="today" color="#06b6d4"/>
-                </div>
-
-                {/* 30-day heatmap */}
-                <div style={{ padding:16, borderRadius:20, border:'1.5px solid var(--border)', background:'var(--card)' }}>
-                  <h3 style={{ fontFamily:'var(--font-display)', fontWeight:600, fontSize:14, color:'var(--muted-fg)', marginBottom:12 }}>30-Day Activity</h3>
-                  <div style={{ display:'grid', gridTemplateColumns:'repeat(10,1fr)', gap:6 }}>
-                    {heatValues.map((heat,i) => {
-                      const colors = ['#1e1a2e','rgba(74,29,138,0.35)','rgba(124,58,237,0.55)','#a3e635'];
-                      return <div key={i} style={{ aspectRatio:'1', borderRadius:4, backgroundColor:colors[heat] }} />;
-                    })}
-                  </div>
-                  <div style={{ display:'flex', alignItems:'center', gap:6, marginTop:10, justifyContent:'flex-end' }}>
-                    <span style={{ fontSize:11, color:'var(--muted-fg)' }}>Less</span>
-                    {['#1e1a2e','rgba(74,29,138,0.35)','rgba(124,58,237,0.55)','#a3e635'].map((c,i)=>(
-                      <div key={i} style={{ width:12, height:12, borderRadius:3, backgroundColor:c }}/>
-                    ))}
-                    <span style={{ fontSize:11, color:'var(--muted-fg)' }}>More</span>
-                  </div>
-                </div>
-
-                {/* Streak bars */}
-                <div style={{ padding:16, borderRadius:20, border:'1.5px solid var(--border)', background:'var(--card)' }}>
-                  <h3 style={{ fontFamily:'var(--font-display)', fontWeight:600, fontSize:14, color:'var(--muted-fg)', marginBottom:12 }}>Habit Streaks</h3>
-                  <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
-                    {[...habits].sort((a,b)=>b.streak-a.streak).map(h=>(
-                      <div key={h.id} style={{ display:'flex', alignItems:'center', gap:12 }}>
-                        <span style={{ fontSize:20, width:32, textAlign:'center' }}>{h.icon}</span>
-                        <div style={{ flex:1 }}>
-                          <div style={{ display:'flex', justifyContent:'space-between', marginBottom:4 }}>
-                            <span style={{ fontSize:13, fontWeight:500 }}>{h.name}</span>
-                            <span style={{ fontFamily:'var(--font-mono)', fontSize:12, color:'#f59e0b' }}>🔥 {h.streak}d</span>
-                          </div>
-                          <div style={{ height:6, borderRadius:99, background:'#1e1a2e', overflow:'hidden' }}>
-                            <div style={{ height:'100%', borderRadius:99, backgroundColor:h.color, width:`${Math.min((h.streak/30)*100,100)}%` }}/>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* JOURNAL */}
-            {tab==='journal' && (
-              <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
-                <div style={{ padding:16, borderRadius:20, border:'1.5px solid var(--border)', background:'var(--card)' }}>
-                  <h3 style={{ fontFamily:'var(--font-display)', fontWeight:600, fontSize:16, marginBottom:12 }}>How are you feeling today?</h3>
-                  <div style={{ display:'flex', gap:6, marginBottom:16 }}>
-                    {MOODS.map(m=>(
-                      <button key={m.value} onClick={()=>setMood(m.value)} style={{
-                        flex:1, display:'flex', flexDirection:'column', alignItems:'center', gap:4,
-                        padding:'10px 0', borderRadius:14, transition:'all 0.2s',
-                        background: mood===m.value ? 'var(--primary)' : 'var(--muted)',
-                        transform: mood===m.value ? 'scale(1.08)' : 'scale(1)',
-                      }}>
-                        <span style={{ fontSize:22 }}>{m.emoji}</span>
-                        <span style={{ fontSize:10, fontWeight:600, color: mood===m.value ? '#fff' : 'var(--muted-fg)' }}>{m.label}</span>
-                      </button>
-                    ))}
-                  </div>
-                  <textarea
-                    value={note}
-                    onChange={e=>setNote(e.target.value)}
-                    placeholder="What's on your mind today? Reflect on your habits, wins, and challenges..."
-                    rows={5}
-                    style={{ width:'100%', padding:12, fontSize:14, resize:'none', display:'block', background:'var(--muted)', color:'var(--fg)', border:'1.5px solid var(--border)', borderRadius:14 }}
-                  />
-                  <button onClick={saveJournal} style={{
-                    marginTop:12, width:'100%', padding:'12px 0',
-                    borderRadius:14, fontWeight:600, fontSize:14,
-                    background:'var(--primary)', color:'#fff', transition:'opacity 0.2s',
-                  }}>Save Entry</button>
-                </div>
-
-                {entries.filter(e=>e.note).length > 0 && (
-                  <div style={{ padding:16, borderRadius:20, border:'1.5px solid var(--border)', background:'var(--card)' }}>
-                    <h3 style={{ fontFamily:'var(--font-display)', fontWeight:600, fontSize:14, color:'var(--muted-fg)', marginBottom:12 }}>Past Entries</h3>
-                    <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
-                      {entries.filter(e=>e.note).slice().reverse().map(e=>(
-                        <div key={e.date} style={{ padding:12, borderRadius:14, background:'var(--muted)' }}>
-                          <div style={{ display:'flex', justifyContent:'space-between', marginBottom:6 }}>
-                            <span style={{ fontFamily:'var(--font-mono)', fontSize:11, color:'var(--muted-fg)' }}>{e.date}</span>
-                            <span style={{ fontSize:18 }}>{MOODS.find(m=>m.value===e.mood)?.emoji}</span>
-                          </div>
-                          <p style={{ fontSize:13, lineHeight:1.6 }}>{e.note}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Mood chart */}
-                <div style={{ padding:16, borderRadius:20, border:'1.5px solid var(--border)', background:'var(--card)' }}>
-                  <h3 style={{ fontFamily:'var(--font-display)', fontWeight:600, fontSize:14, color:'var(--muted-fg)', marginBottom:12 }}>Mood Over Time</h3>
-                  <div style={{ display:'flex', alignItems:'flex-end', gap:4, height:64 }}>
-                    {[4,3,5,4,2,4,5,3,4,4,5,4,3,5].map((v,i)=>(
-                      <div key={i} style={{
-                        flex:1, borderRadius:'3px 3px 0 0', opacity:0.75,
-                        height:`${(v/5)*100}%`,
-                        background: v>=4?'#a3e635':v===3?'#7c3aed':'#ef4444',
-                      }}/>
-                    ))}
-                  </div>
-                  <div style={{ display:'flex', justifyContent:'space-between', marginTop:6 }}>
-                    <span style={{ fontFamily:'var(--font-mono)', fontSize:11, color:'var(--muted-fg)' }}>2 weeks ago</span>
-                    <span style={{ fontFamily:'var(--font-mono)', fontSize:11, color:'var(--muted-fg)' }}>Today</span>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* BADGES */}
-            {tab==='badges' && (
-              <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
-                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-                  <h3 style={{ fontFamily:'var(--font-display)', fontWeight:700, fontSize:16 }}>Achievements</h3>
-                  <span style={{ fontFamily:'var(--font-mono)', fontSize:12, padding:'4px 10px', borderRadius:10, background:'var(--secondary)', color:'var(--accent)' }}>
-                    {BADGE_DEFS.filter(b=>b.earned).length}/{BADGE_DEFS.length}
-                  </span>
-                </div>
-
-                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
-                  {BADGE_DEFS.map(b=>(
-                    <div key={b.id} style={{
-                      padding:16, borderRadius:20, display:'flex', flexDirection:'column', alignItems:'center', gap:8, textAlign:'center',
-                      border: `1.5px solid ${b.earned ? 'rgba(163,230,53,0.3)' : 'var(--border)'}`,
-                      background: b.earned ? '#0d1a00' : 'var(--card)',
-                      opacity: b.earned ? 1 : 0.5,
-                    }}>
-                      <span style={{ fontSize:32 }}>{b.icon}</span>
-                      <div>
-                        <p style={{ fontFamily:'var(--font-display)', fontWeight:600, fontSize:13 }}>{b.name}</p>
-                        <p style={{ fontSize:11, marginTop:2, color:'var(--muted-fg)' }}>{b.desc}</p>
-                      </div>
-                      {b.earned
-                        ? <span style={{ fontSize:11, fontWeight:700, padding:'2px 10px', borderRadius:99, background:'rgba(163,230,53,0.12)', color:'#a3e635' }}>Earned ✓</span>
-                        : <span style={{ fontSize:11, color:'var(--muted-fg)' }}>Locked</span>
-                      }
-                    </div>
-                  ))}
-                </div>
-
-                {/* Leaderboard */}
-                <div style={{ padding:16, borderRadius:20, border:'1.5px solid var(--border)', background:'var(--card)' }}>
-                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12 }}>
-                    <h3 style={{ fontFamily:'var(--font-display)', fontWeight:600, fontSize:14 }}>Weekly League</h3>
-                    <span style={{ fontSize:11, fontWeight:600, padding:'3px 8px', borderRadius:99, background:'rgba(124,58,237,0.15)', color:'#a78bfa' }}>Public</span>
-                  </div>
-                  {[
-                    { name:'Jordan M.',  xp:312, streak:22, you:false },
-                    { name:'Alex (You)', xp:287, streak:15, you:true  },
-                    { name:'Sam T.',     xp:241, streak:11, you:false },
-                    { name:'Riley K.',   xp:198, streak:8,  you:false },
-                    { name:'Morgan L.', xp:145, streak:5,  you:false },
-                  ].map((p,i)=>(
-                    <div key={p.name} style={{
-                      display:'flex', alignItems:'center', gap:12, padding:'10px 0',
-                      borderBottom: i<4 ? '1px solid var(--border)' : 'none',
-                    }}>
-                      <span style={{ fontFamily:'var(--font-mono)', fontSize:14, width:20, textAlign:'center', color: i===0?'#f59e0b':'var(--muted-fg)' }}>
-                        {i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1}
-                      </span>
-                      <span style={{ flex:1, fontSize:14, fontWeight:500, color: p.you?'#a3e635':'var(--fg)' }}>{p.name}</span>
-                      <span style={{ fontFamily:'var(--font-mono)', fontSize:12, color:'#f59e0b' }}>🔥{p.streak}</span>
-                      <span style={{ fontFamily:'var(--font-mono)', fontSize:12, color:'var(--muted-fg)' }}>{p.xp}xp</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </main>
-
-          {/* ── Add Habit Modal ── */}
-          {showAdd && (
-            <div
-              onClick={e => e.target===e.currentTarget && setShowAdd(false)}
-              style={{
-                position:'fixed', inset:0, zIndex:40,
-                display:'flex', alignItems:'flex-end',
-                background:'rgba(0,0,0,0.7)', backdropFilter:'blur(4px)',
-              }}
-            >
-              <div style={{ width:'100%', maxWidth:480, margin:'0 auto' }} className="slide-up">
-                <div style={{ borderRadius:'24px 24px 0 0', padding:24, background:'var(--card)', border:'1px solid var(--border)' }}>
-                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:20 }}>
-                    <h2 style={{ fontFamily:'var(--font-display)', fontWeight:700, fontSize:20 }}>New Habit</h2>
-                    <button onClick={()=>setShowAdd(false)} style={{ width:32, height:32, borderRadius:12, color:'var(--muted-fg)', fontSize:16, display:'flex', alignItems:'center', justifyContent:'center' }}>✕</button>
-                  </div>
-
-                  <input
-                    type="text"
-                    placeholder="Habit name..."
-                    value={newHabit.name}
-                    onChange={e=>setNewHabit(n=>({...n,name:e.target.value}))}
-                    onKeyDown={e=>e.key==='Enter'&&addHabit()}
-                    autoFocus
-                    style={{ width:'100%', padding:12, fontSize:15, fontWeight:500, marginBottom:16, display:'block', background:'var(--muted)', color:'var(--fg)', border:'1.5px solid var(--border)', borderRadius:14 }}
-                  />
-
-                  <p style={{ fontSize:11, fontWeight:600, color:'var(--muted-fg)', marginBottom:8, letterSpacing:'0.08em' }}>ICON</p>
-                  <div style={{ display:'flex', flexWrap:'wrap', gap:8, marginBottom:16 }}>
-                    {ICONS.map(ic=>(
-                      <button key={ic} onClick={()=>setNewHabit(n=>({...n,icon:ic}))} style={{
-                        width:40, height:40, borderRadius:12, fontSize:20,
-                        display:'flex', alignItems:'center', justifyContent:'center',
-                        background: newHabit.icon===ic ? 'var(--primary)' : 'var(--muted)',
-                        transform: newHabit.icon===ic ? 'scale(1.15)' : 'scale(1)',
-                        transition:'all 0.15s',
-                      }}>{ic}</button>
-                    ))}
-                  </div>
-
-                  <p style={{ fontSize:11, fontWeight:600, color:'var(--muted-fg)', marginBottom:8, letterSpacing:'0.08em' }}>COLOR</p>
-                  <div style={{ display:'flex', gap:8, marginBottom:20 }}>
-                    {COLORS.map(c=>(
-                      <button key={c} onClick={()=>setNewHabit(n=>({...n,color:c}))} style={{
-                        width:32, height:32, borderRadius:'50%', backgroundColor:c, flexShrink:0,
-                        outline: newHabit.color===c ? `2.5px solid ${c}` : 'none',
-                        outlineOffset: 3,
-                        transform: newHabit.color===c ? 'scale(1.25)' : 'scale(1)',
-                        transition:'all 0.15s',
-                      }}/>
-                    ))}
-                  </div>
-
-                  <button onClick={addHabit} style={{
-                    width:'100%', padding:'14px 0', borderRadius:14,
-                    fontWeight:700, fontSize:15, background:'var(--primary)', color:'#fff', transition:'opacity 0.2s',
-                  }}>Create Habit</button>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      );
+    function saveAndRender() {
+      localStorage.setItem("habits", JSON.stringify(habits));
+      renderHabits();
     }
 
-    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+    function showCelebration(icon, text) {
+      document.getElementById("celebrationIcon").textContent = icon;
+      document.getElementById("celebrationText").textContent = text;
+      document.getElementById("celebration").style.display = "flex";
+    }
+
+    function showDayDetail(dateStr) {
+      document.getElementById("dayModalDate").textContent = dateStr;
+      const list = document.getElementById("dayModalList");
+      list.innerHTML = "";
+      if (habits.length === 0) {
+        list.innerHTML = "<li>No habits yet</li>";
+      } else {
+        habits.forEach(function(habit) {
+          const done = habit.history.includes(dateStr);
+          const li = document.createElement("li");
+          const name = document.createElement("span");
+          name.textContent = habit.name;
+          const status = document.createElement("span");
+          status.className = "status";
+          status.textContent = done ? "✅" : "—";
+          li.appendChild(name);
+          li.appendChild(status);
+          list.appendChild(li);
+        });
+      }
+      document.getElementById("dayModal").style.display = "flex";
+    }
+
+    function checkBadges(habit) {
+      if (habit.streak > habit.bestStreak) habit.bestStreak = habit.streak;
+      BADGE_LEVELS.forEach(function(level) {
+        if (habit.streak >= level.days && !habit.badges.includes(level.days)) {
+          habit.badges.push(level.days);
+          addXP(50);
+          showCelebration(level.icon, "You unlocked \"" + level.label + "\" for " + habit.name + "! +50 XP");
+        }
+      });
+    }
+
+    function shareStreak(habit) {
+      const canvas = document.createElement("canvas");
+      canvas.width = 600;
+      canvas.height = 600;
+      const ctx = canvas.getContext("2d");
+      const gradient = ctx.createLinearGradient(0, 0, 600, 600);
+      gradient.addColorStop(0, "#FF7A45");
+      gradient.addColorStop(1, "#E63946");
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, 600, 600);
+      ctx.fillStyle = "white";
+      ctx.textAlign = "center";
+      ctx.font = "60px sans-serif";
+      ctx.fillText("🔥", 300, 220);
+      ctx.font = "bold 48px sans-serif";
+      ctx.fillText(habit.streak + " Day Streak", 300, 300);
+      ctx.font = "26px sans-serif";
+      ctx.fillText(habit.name, 300, 350);
+      ctx.font = "18px sans-serif";
+      ctx.fillText("Built with Habit Tracker", 300, 550);
+      canvas.toBlob(function(blob) {
+        const file = new File([blob], "streak.png", { type: "image/png" });
+        if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+          navigator.share({ files: [file], title: "My Habit Streak", text: habit.name + " — " + habit.streak + " day streak! 🔥" });
+        } else {
+          const link = document.createElement("a");
+          link.download = "streak.png";
+          link.href = canvas.toDataURL();
+          link.click();
+        }
+      });
+    }
+
+    let calendarViewYear = null;
+    let calendarViewMonth = null;
+
+    function openDetail(index) {
+      currentDetailIndex = index;
+      const now = new Date();
+      calendarViewYear = now.getFullYear();
+      calendarViewMonth = now.getMonth();
+      document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
+      showPage("page-detail");
+      renderDetail();
+    }
+
+    function renderDetail() {
+      if (currentDetailIndex === null) return;
+      const habit = habits[currentDetailIndex];
+      if (!habit) return;
+
+      document.getElementById("detailName").textContent = (habit.icon ? habit.icon + " " : "") + habit.name + (habit.description ? " — " + habit.description : "");
+      document.getElementById("detailStreak").textContent = habit.streak;
+      document.getElementById("detailBest").textContent = habit.bestStreak;
+      document.getElementById("detailTotal").textContent = habit.history.length;
+
+      const badgeGrid = document.getElementById("detailBadges");
+      badgeGrid.innerHTML = "";
+      BADGE_LEVELS.forEach(function(level) {
+        const unlocked = habit.badges.includes(level.days);
+        const div = document.createElement("div");
+        div.className = "badge" + (unlocked ? " unlocked" : "");
+        div.innerHTML = "<span class='icon'>" + level.icon + "</span><span class='label'>" + level.label + "</span>";
+        badgeGrid.appendChild(div);
+      });
+
+      const heatmap = document.getElementById("detailHeatmap");
+      heatmap.innerHTML = "";
+      const wrap = document.createElement("div");
+      wrap.className = "heatmap-grid simple-row";
+      for (let i = 29; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        const dateStr = d.toISOString().split("T")[0];
+        const cell = document.createElement("div");
+        cell.className = "heatmap-cell" + (habit.history.includes(dateStr) ? " l3" : "");
+        cell.title = dateStr;
+        cell.addEventListener("click", function() { showDayDetail(dateStr); });
+        wrap.appendChild(cell);
+      }
+      heatmap.appendChild(wrap);
+
+      renderCalendar();
+
+      const notesBox = document.getElementById("detailNotes");
+      notesBox.value = habit.notes || "";
+      notesBox.oninput = function() {
+        habit.notes = notesBox.value;
+        localStorage.setItem("habits", JSON.stringify(habits));
+      };
+    }
+
+    function renderCalendar() {
+      if (currentDetailIndex === null || calendarViewYear === null) return;
+      const habit = habits[currentDetailIndex];
+      if (!habit) return;
+
+      const monthNames = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+      document.getElementById("calMonthLabel").textContent = monthNames[calendarViewMonth] + " " + calendarViewYear;
+
+      const grid = document.getElementById("calendarGrid");
+      grid.innerHTML = "";
+      ["S","M","T","W","T","F","S"].forEach(function(l) {
+        const dow = document.createElement("div");
+        dow.className = "cal-dow";
+        dow.textContent = l;
+        grid.appendChild(dow);
+      });
+
+      const firstOfMonth = new Date(calendarViewYear, calendarViewMonth, 1);
+      const startOffset = firstOfMonth.getDay();
+      const daysInMonth = new Date(calendarViewYear, calendarViewMonth + 1, 0).getDate();
+      const todayStr = todayString();
+
+      for (let i = 0; i < startOffset; i++) {
+        const blank = document.createElement("div");
+        blank.className = "cal-cell empty-cell";
+        grid.appendChild(blank);
+      }
+
+      for (let day = 1; day <= daysInMonth; day++) {
+        const d = new Date(calendarViewYear, calendarViewMonth, day);
+        const ds = d.toISOString().split("T")[0];
+        const cell = document.createElement("div");
+        cell.className = "cal-cell";
+        if (habit.history.includes(ds)) cell.classList.add("done");
+        if (ds === todayStr) cell.classList.add("today");
+        if (ds > todayStr) cell.classList.add("future");
+        cell.textContent = day;
+        if (ds <= todayStr) {
+          cell.addEventListener("click", function() { toggleDayCompletion(ds); });
+        }
+        grid.appendChild(cell);
+      }
+    }
+
+    function applyDayToggle(habit, dateStr) {
+      const idx = habit.history.indexOf(dateStr);
+      if (idx === -1) {
+        habit.history.push(dateStr);
+      } else {
+        habit.history.splice(idx, 1);
+      }
+      recalcHabitStreak(habit);
+    }
+
+    function toggleDayCompletion(dateStr) {
+      const habit = habits[currentDetailIndex];
+      if (!habit) return;
+      applyDayToggle(habit, dateStr);
+      saveAndRender();
+      renderDetail();
+    }
+
+    function toggleDayForHabitIndex(index, dateStr) {
+      const habit = habits[index];
+      if (!habit) return;
+      applyDayToggle(habit, dateStr);
+      saveAndRender();
+    }
+
+    function buildMiniYearGrid(habit, index) {
+      const scroll = document.createElement("div");
+      scroll.className = "heatmap-scroll mini-year-grid";
+      const grid = document.createElement("div");
+      grid.className = "heatmap-grid";
+      const todayStr = todayString();
+      for (let i = 364; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        const ds = d.toISOString().split("T")[0];
+        const cell = document.createElement("div");
+        cell.className = "heatmap-cell" + (habit.history.includes(ds) ? " l3" : "");
+        cell.title = ds;
+        if (ds <= todayStr) {
+          cell.addEventListener("click", function(e) {
+            e.stopPropagation();
+            toggleDayForHabitIndex(index, ds);
+          });
+        }
+        grid.appendChild(cell);
+      }
+      scroll.appendChild(grid);
+      return scroll;
+    }
+
+    function recalcHabitStreak(habit) {
+      if (habit.frequency && habit.frequency.type === "count") {
+        recalcCountStreak(habit);
+        return;
+      }
+      const today = todayString();
+      if (habit.history.length === 0) {
+        habit.streak = 0;
+        habit.lastDone = null;
+        return;
+      }
+      const sortedHistory = habit.history.slice().sort();
+      const lastDoneDate = sortedHistory[sortedHistory.length - 1];
+      habit.lastDone = lastDoneDate;
+
+      let broken = false;
+      if (lastDoneDate !== today) {
+        if (habit.frequency && habit.frequency.type === "custom") {
+          broken = hasMissedScheduledDay(habit, lastDoneDate, today);
+        } else {
+          const diff = Math.floor((new Date(today) - new Date(lastDoneDate)) / 86400000);
+          broken = diff > 1;
+        }
+      }
+
+      if (broken) {
+        habit.streak = 0;
+      } else {
+        let streak = 0;
+        let d = new Date(lastDoneDate);
+        while (true) {
+          const ds = d.toISOString().split("T")[0];
+          if (isScheduledDay(habit, ds)) {
+            if (habit.history.includes(ds)) {
+              streak++;
+            } else {
+              break;
+            }
+          }
+          d.setDate(d.getDate() - 1);
+          if (streak > 3650) break;
+        }
+        habit.streak = streak;
+      }
+
+      const historySet = new Set(habit.history);
+      let best = 0;
+      let cur = 0;
+      let d2 = new Date(sortedHistory[0]);
+      const end = new Date(lastDoneDate);
+      while (d2 <= end) {
+        const ds2 = d2.toISOString().split("T")[0];
+        if (isScheduledDay(habit, ds2)) {
+          if (historySet.has(ds2)) {
+            cur++;
+            if (cur > best) best = cur;
+          } else {
+            cur = 0;
+          }
+        }
+        d2.setDate(d2.getDate() + 1);
+      }
+      habit.bestStreak = Math.max(habit.bestStreak || 0, best);
+    }
+
+    document.getElementById("calPrevBtn").addEventListener("click", function() {
+      calendarViewMonth--;
+      if (calendarViewMonth < 0) { calendarViewMonth = 11; calendarViewYear--; }
+      renderCalendar();
+    });
+    document.getElementById("calNextBtn").addEventListener("click", function() {
+      calendarViewMonth++;
+      if (calendarViewMonth > 11) { calendarViewMonth = 0; calendarViewYear++; }
+      renderCalendar();
+    });
+
+    function streakTier(streak) {
+      if (streak >= 7) return "tier-3";
+      if (streak >= 3) return "tier-2";
+      if (streak >= 1) return "tier-1";
+      return "";
+    }
+
+    function renderHabits() {
+      const list = document.getElementById("habitList");
+      const emptyMsg = document.getElementById("emptyMsg");
+      list.innerHTML = "";
+      const activeHabits = habits.filter(h => !h.archived);
+      const visibleCount = activeHabits.filter(matchesFilters).length;
+      emptyMsg.innerHTML = activeHabits.length === 0
+        ? "<div class='empty-state-icon'>🌱</div><div class='empty-state-title'>No habits yet</div><div class='empty-state-text'>Tap \u201c+ Add Habit\u201d above to plant your first one.</div>"
+        : "<div class='empty-state-icon'>🔍</div><div class='empty-state-title'>No matches</div><div class='empty-state-text'>Try a different search or category filter.</div>";
+      emptyMsg.style.display = visibleCount === 0 ? "block" : "none";
+      const today = todayString();
+
+      document.getElementById("heroStreak").textContent = habits.filter(h => !h.archived).reduce((max, h) => Math.max(max, h.streak), 0);
+      renderLevel();
+
+      habits.forEach(function(habit, index) {
+        if (habit.archived) return;
+        recalcHabitStreak(habit);
+        if (!matchesFilters(habit)) return;
+        const li = document.createElement("li");
+        li.className = streakTier(habit.streak);
+        li.addEventListener("click", function(e) {
+          if (e.target.tagName === "BUTTON") return;
+          openDetail(index);
+        });
+
+        const top = document.createElement("div");
+        top.className = "habit-top";
+        const text = document.createElement("span");
+        text.innerHTML = "<span class='habit-name'>" + (habit.icon ? habit.icon + " " : "") + habit.name + "</span><span class='habit-streak'>🔥 " + habit.streak + "</span>";
+        const actions = document.createElement("div");
+        actions.className = "habit-actions";
+
+        const scheduledToday = isScheduledDay(habit, today);
+        const doneBtn = document.createElement("button");
+        doneBtn.className = "primaryBtn";
+
+        if (habit.goalType === "quantity") {
+          const progress = getProgress(habit, today);
+          const complete = habit.lastDone === today;
+          const unitSuffix = habit.unit ? (" " + habit.unit) : "";
+          doneBtn.textContent = complete
+            ? "Done (" + progress + "/" + habit.targetQty + unitSuffix + ")"
+            : (scheduledToday ? "+1 (" + progress + "/" + habit.targetQty + ")" : "Rest day");
+          doneBtn.disabled = complete || !scheduledToday;
+          doneBtn.addEventListener("click", function() {
+            if (!habit.dailyProgress) habit.dailyProgress = {};
+            habit.dailyProgress[today] = (habit.dailyProgress[today] || 0) + 1;
+            if (habit.dailyProgress[today] >= habit.targetQty) {
+              habit.streak++;
+              habit.lastDone = today;
+              if (!habit.history.includes(today)) habit.history.push(today);
+              checkBadges(habit);
+              addXP(10);
+              suggestNextInChain(habit);
+            }
+            saveAndRender();
+          });
+        } else {
+          const isCountFreq = habit.frequency && habit.frequency.type === "count";
+          const doneAlready = habit.lastDone === today;
+          if (isCountFreq) {
+            const period = habit.frequency.period === "month" ? "month" : "week";
+            const target = habit.frequency.target || 1;
+            const periodProgress = getPeriodCount(habit, getPeriodKey(today, period), period);
+            doneBtn.textContent = doneAlready
+              ? "Done (" + periodProgress + "/" + target + ")"
+              : "+1 (" + periodProgress + "/" + target + ")";
+            doneBtn.disabled = doneAlready;
+          } else {
+            doneBtn.textContent = doneAlready ? "Done" : (scheduledToday ? "Done today" : "Rest day");
+            doneBtn.disabled = doneAlready || !scheduledToday;
+          }
+          doneBtn.addEventListener("click", function() {
+            habit.streak++;
+            habit.lastDone = today;
+            if (!habit.history.includes(today)) habit.history.push(today);
+            checkBadges(habit);
+            addXP(10);
+            suggestNextInChain(habit);
+            saveAndRender();
+          });
+        }
+
+        const editBtn = document.createElement("button");
+        editBtn.textContent = "✏️";
+        editBtn.className = "icon-btn";
+        editBtn.addEventListener("click", function() { openHabitModal(index); });
+
+        const shareBtn = document.createElement("button");
+        shareBtn.textContent = "📤";
+        shareBtn.className = "icon-btn";
+        shareBtn.addEventListener("click", function() { shareStreak(habit); });
+
+        const deleteBtn = document.createElement("button");
+        deleteBtn.textContent = "📦";
+        deleteBtn.title = "Archive";
+        deleteBtn.className = "icon-btn";
+        deleteBtn.addEventListener("click", function(e) {
+          e.stopPropagation();
+          const confirmed = confirm("Archive \"" + habit.name + "\"? Your history stays intact and you can restore it later from the Archived section.");
+          if (!confirmed) return;
+          habit.archived = true;
+          saveAndRender();
+        });
+
+        actions.appendChild(doneBtn);
+        actions.appendChild(editBtn);
+        actions.appendChild(shareBtn);
+        actions.appendChild(deleteBtn);
+        top.appendChild(text);
+        top.appendChild(actions);
+        li.appendChild(top);
+
+        const cat = categoryInfo(habit.category);
+        let chainLabel = "";
+        if (habit.chainAfter) {
+          const trigger = habits.find(h => h.id === habit.chainAfter);
+          if (trigger) chainLabel = " · 🔗 after " + trigger.name;
+        }
+        const meta = document.createElement("div");
+        meta.className = "habit-meta";
+        meta.innerHTML = "<span class='meta-dot' style='background:" + habit.color + "'></span>" +
+          "<span>" + cat.icon + " " + cat.label + " · " + frequencyLabel(habit) + (habit.description ? " · " + habit.description : "") + chainLabel + "</span>";
+        li.appendChild(meta);
+        li.appendChild(buildMiniYearGrid(habit, index));
+
+        list.appendChild(li);
+      });
+      localStorage.setItem("habits", JSON.stringify(habits));
+      syncPlayerDoc();
+      syncToCloud();
+      renderArchived();
+    }
+
+    function renderArchived() {
+      const container = document.getElementById("archivedList");
+      if (!container) return;
+      const archived = habits.filter(h => h.archived);
+      if (archived.length === 0) {
+        container.innerHTML = "<p class='empty' style='margin:8px 0;'>No archived habits.</p>";
+        return;
+      }
+      container.innerHTML = "";
+      archived.forEach(function(habit) {
+        const row = document.createElement("div");
+        row.className = "league-card";
+        const name = document.createElement("span");
+        name.textContent = habit.name;
+        const actions = document.createElement("div");
+        actions.style.display = "flex";
+        actions.style.gap = "6px";
+
+        const restoreBtn = document.createElement("button");
+        restoreBtn.textContent = "♻️ Restore";
+        restoreBtn.className = "icon-btn";
+        restoreBtn.addEventListener("click", function(e) {
+          e.stopPropagation();
+          habit.archived = false;
+          saveAndRender();
+        });
+
+        const wipeBtn = document.createElement("button");
+        wipeBtn.textContent = "🗑️";
+        wipeBtn.title = "Delete forever";
+        wipeBtn.className = "icon-btn";
+        wipeBtn.addEventListener("click", function(e) {
+          e.stopPropagation();
+          const confirmed = confirm("Permanently delete \"" + habit.name + "\"? This can't be undone.");
+          if (!confirmed) return;
+          const realIndex = habits.indexOf(habit);
+          if (realIndex !== -1) habits.splice(realIndex, 1);
+          saveAndRender();
+        });
+
+        actions.appendChild(restoreBtn);
+        actions.appendChild(wipeBtn);
+        row.appendChild(name);
+        row.appendChild(actions);
+        container.appendChild(row);
+      });
+    }
+
+    function renderStats() {
+      const container = document.getElementById("statsList");
+      container.innerHTML = "";
+      const activeHabits = habits.filter(h => !h.archived);
+      if (activeHabits.length === 0) {
+        container.innerHTML = "<p class='empty'>Add habits on the Home tab to see stats here.</p>";
+        return;
+      }
+      const week = last7Days();
+      activeHabits.forEach(function(habit) {
+        const card = document.createElement("div");
+        card.className = "stat-habit";
+        const name = document.createElement("div");
+        name.className = "name";
+        name.textContent = habit.name + " — 🔥 " + habit.streak + " day streak";
+        const weekRow = document.createElement("div");
+        weekRow.className = "week-row";
+        week.forEach(function(dateStr) {
+          const dayDiv = document.createElement("div");
+          dayDiv.className = "day-dot";
+          const label = document.createElement("div");
+          label.textContent = dayLabels[new Date(dateStr).getDay()];
+          const circle = document.createElement("div");
+          circle.className = "circle" + (habit.history.includes(dateStr) ? " done" : "");
+          dayDiv.appendChild(label);
+          dayDiv.appendChild(circle);
+          weekRow.appendChild(dayDiv);
+        });
+        card.appendChild(name);
+        card.appendChild(weekRow);
+        container.appendChild(card);
+      });
+    }
+
+    function renderBadges() {
+      const grid = document.getElementById("badgeGrid");
+      grid.innerHTML = "";
+      BADGE_LEVELS.forEach(function(level) {
+        const unlocked = habits.some(h => h.badges.includes(level.days));
+        const div = document.createElement("div");
+        div.className = "badge" + (unlocked ? " unlocked" : "");
+        div.innerHTML = "<span class='icon'>" + level.icon + "</span><span class='label'>" + level.label + "</span>";
+        grid.appendChild(div);
+      });
+    }
+
+    function getCompletionCount(dateStr) {
+      let count = 0;
+      habits.forEach(h => { if (h.history.includes(dateStr)) count++; });
+      return count;
+    }
+
+    function levelClass(count) {
+      if (count === 0) return "";
+      if (count === 1) return "l1";
+      if (count === 2) return "l2";
+      return "l3";
+    }
+
+    function renderHeatmap() {
+      const container = document.getElementById("heatmapContainer");
+      container.innerHTML = "";
+      if (habits.length === 0) {
+        container.innerHTML = "<p class='empty' style='margin:0;'>Add habits to see your activity here.</p>";
+        return;
+      }
+
+      if (currentHeatmapRange === "daily") {
+        const wrap = document.createElement("div");
+        wrap.className = "heatmap-grid simple-row";
+        for (let i = 29; i >= 0; i--) {
+          const d = new Date();
+          d.setDate(d.getDate() - i);
+          const dateStr = d.toISOString().split("T")[0];
+          const cell = document.createElement("div");
+          cell.className = "heatmap-cell " + levelClass(getCompletionCount(dateStr));
+          cell.title = dateStr + ": " + getCompletionCount(dateStr) + " habit(s)";
+          cell.addEventListener("click", function() { showDayDetail(dateStr); });
+          wrap.appendChild(cell);
+        }
+        container.appendChild(wrap);
+
+      } else if (currentHeatmapRange === "yearly") {
+        const scroll = document.createElement("div");
+        scroll.className = "heatmap-scroll";
+        const grid = document.createElement("div");
+        grid.className = "heatmap-grid";
+        for (let i = 370; i >= 0; i--) {
+          const d = new Date();
+          d.setDate(d.getDate() - i);
+          const dateStr = d.toISOString().split("T")[0];
+          const cell = document.createElement("div");
+          cell.className = "heatmap-cell " + levelClass(getCompletionCount(dateStr));
+          cell.title = dateStr + ": " + getCompletionCount(dateStr) + " habit(s)";
+          cell.addEventListener("click", function() { showDayDetail(dateStr); });
+          grid.appendChild(cell);
+        }
+        scroll.appendChild(grid);
+        container.appendChild(scroll);
+
+      } else if (currentHeatmapRange === "weekly") {
+        const bars = document.createElement("div");
+        bars.className = "heatmap-bars";
+        const weekTotals = [];
+        for (let w = 11; w >= 0; w--) {
+          let total = 0;
+          for (let d = 0; d < 7; d++) {
+            const day = new Date();
+            day.setDate(day.getDate() - (w * 7 + d));
+            total += getCompletionCount(day.toISOString().split("T")[0]);
+          }
+          weekTotals.push(total);
+        }
+        const max = Math.max(1, ...weekTotals);
+        weekTotals.forEach(function(total, i) {
+          const wrap = document.createElement("div");
+          wrap.className = "heatmap-bar-wrap";
+          const bar = document.createElement("div");
+          bar.className = "heatmap-bar";
+          bar.style.height = Math.max(4, (total / max) * 80) + "px";
+          bar.title = total + " completions";
+          const label = document.createElement("div");
+          label.className = "heatmap-bar-label";
+          label.textContent = "W" + (i + 1);
+          wrap.appendChild(bar);
+          wrap.appendChild(label);
+          bars.appendChild(wrap);
+        });
+        container.appendChild(bars);
+
+      } else if (currentHeatmapRange === "monthly") {
+        const bars = document.createElement("div");
+        bars.className = "heatmap-bars";
+        const monthTotals = [];
+        const monthLabels = [];
+        const now = new Date();
+        for (let m = 11; m >= 0; m--) {
+          const monthDate = new Date(now.getFullYear(), now.getMonth() - m, 1);
+          const nextMonthDate = new Date(now.getFullYear(), now.getMonth() - m + 1, 1);
+          let total = 0;
+          for (let d = new Date(monthDate); d < nextMonthDate; d.setDate(d.getDate() + 1)) {
+            total += getCompletionCount(d.toISOString().split("T")[0]);
+          }
+          monthTotals.push(total);
+          monthLabels.push(monthDate.toLocaleString('default', { month: 'short' }));
+        }
+        const max = Math.max(1, ...monthTotals);
+        monthTotals.forEach(function(total, i) {
+          const wrap = document.createElement("div");
+          wrap.className = "heatmap-bar-wrap";
+          const bar = document.createElement("div");
+          bar.className = "heatmap-bar";
+          bar.style.height = Math.max(4, (total / max) * 80) + "px";
+          bar.title = total + " completions";
+          const label = document.createElement("div");
+          label.className = "heatmap-bar-label";
+          label.textContent = monthLabels[i];
+          wrap.appendChild(bar);
+          wrap.appendChild(label);
+          bars.appendChild(wrap);
+        });
+        container.appendChild(bars);
+      }
+    }
+
+    buildCategorySelect();
+    buildCategoryFilter();
+    buildDayPicker();
+    renderHabits();
   </script>
 </body>
 </html>
