@@ -86,6 +86,13 @@
     .settings-static { font-size: 13px; color: var(--text-muted); }
     .settings-link { text-decoration: none; color: var(--text); cursor: pointer; }
     .settings-chevron { color: var(--text-muted); font-size: 16px; }
+    #page-premium { position: relative; }
+    .premium-close-btn {
+      position: absolute; top: 0; right: 0; background: var(--surface-2); border: none;
+      width: 32px; height: 32px; border-radius: 50%; color: var(--text-muted); font-size: 15px;
+      cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 5;
+    }
+    .premium-close-btn:active { transform: scale(0.92); }
 
     #app { display: none; padding: 24px 18px 100px 18px; max-width: 420px; margin: 0 auto; }
     .page { display: none; }
@@ -482,11 +489,12 @@
     </div>
 
     <div class="page" id="page-premium">
-      <div class="top-bar"><button class="back-btn" id="premiumBackBtn">← Back</button></div>
-      <div class="premium-card">
-        <div style="font-size:40px;">⭐</div>
-        <h2 style="margin:8px 0 4px 0;">Habit Tracker Premium</h2>
-        <p id="premiumStatusText" style="color:var(--text-muted); font-size:14px;">You're on the Free plan</p>
+      <button class="premium-close-btn" id="premiumCloseBtn" title="Close">✕</button>
+      <div class="premium-card" style="margin-top:16px;">
+        <div style="font-size:36px;">⚡</div>
+        <h2 style="margin:10px 0 6px 0;">Unlock Total Friction Control</h2>
+        <p style="color:var(--text-muted); font-size:14px; margin-bottom:10px; line-height:1.5;">Break the loops holding you back. Reclaim your focus.</p>
+        <p id="premiumStatusText" style="color:var(--text-muted); font-size:13px;">You're on the Free plan</p>
       </div>
       <div class="section-label">What you get</div>
       <ul class="premium-features">
@@ -978,7 +986,7 @@
     document.getElementById("habitsBackBtn").addEventListener("click", function() { showPage("page-home"); });
     document.getElementById("badgesBackBtn").addEventListener("click", function() { showPage("page-home"); });
     document.getElementById("journalBackBtn").addEventListener("click", function() { showPage("page-home"); });
-    document.getElementById("premiumBackBtn").addEventListener("click", function() { showPage("page-home"); });
+    document.getElementById("premiumCloseBtn").addEventListener("click", function() { showPage("page-home"); });
 
     /* ---------- Premium ---------- */
 
