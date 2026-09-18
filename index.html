@@ -184,6 +184,15 @@
     .cal-cell.future { opacity: 0.35; cursor: default; pointer-events: none; }
     .mini-year-grid { margin-top: 10px; }
 
+    .toast {
+      position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%); max-width: 85%;
+      background: var(--surface); border: 1px solid var(--line); color: var(--text);
+      padding: 12px 18px; border-radius: 100px; font-size: 13px; text-align: center;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.3); z-index: 200; opacity: 0; transition: opacity 0.3s;
+      pointer-events: none;
+    }
+    .toast.show { opacity: 1; }
+
     .bottom-nav {
       position: fixed; bottom: 0; left: 0; right: 0; background: var(--bg);
       border-top: 1px solid var(--line); display: flex; justify-content: space-around; padding: 12px 0 16px 0;
@@ -524,6 +533,11 @@
       <label class="modal-label" for="modalReminderTime">Reminder (optional)</label>
       <input type="time" id="modalReminderTime" class="modal-input">
 
+      <label class="modal-label" for="modalChainAfter">Chain after (optional)</label>
+      <select id="modalChainAfter" class="modal-input">
+        <option value="">None — starts its own chain</option>
+      </select>
+
       <div class="modal-actions">
         <button id="modalCancelBtn" class="modal-btn-secondary">Cancel</button>
         <button id="modalSaveBtn" class="modal-btn-primary">Save</button>
@@ -561,6 +575,8 @@
       if (h.icon === undefined) h.icon = "";
       if (h.description === undefined) h.description = "";
       if (h.reminderTime === undefined) h.reminderTime = "";
+      if (!h.id) h.id = "h_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 8);
+      if (h.chainAfter === undefined) h.chainAfter = "";
     });
 
     let totalXP = parseInt(localStorage.getItem("totalXP") || "0", 10);
@@ -980,6 +996,8 @@
       if (h.icon === undefined) h.icon = "";
       if (h.description === undefined) h.description = "";
       if (h.reminderTime === undefined) h.reminderTime = "";
+      if (!h.id) h.id = "h_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 8);
+      if (h.chainAfter === undefined) h.chainAfter = "";
         });
         totalXP = typeof data.totalXP === "number" ? data.totalXP : 0;
         localStorage.setItem("totalXP", String(totalXP));
@@ -1294,6 +1312,8 @@
       if (h.icon === undefined) h.icon = "";
       if (h.description === undefined) h.description = "";
       if (h.reminderTime === undefined) h.reminderTime = "";
+      if (!h.id) h.id = "h_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 8);
+      if (h.chainAfter === undefined) h.chainAfter = "";
         });
         totalXP = typeof data.totalXP === "number" ? data.totalXP : 0;
         localStorage.setItem("totalXP", String(totalXP));
@@ -1459,6 +1479,42 @@
       });
     }
 
+    function buildChainSelect(excludeIndex) {
+      const select = document.getElementById("modalChainAfter");
+      select.innerHTML = "<option value=''>None — starts its own chain</option>";
+      habits.forEach(function(h, i) {
+        if (h.archived) return;
+        if (i === excludeIndex) return;
+        const opt = document.createElement("option");
+        opt.value = h.id;
+        opt.textContent = (h.icon || categoryInfo(h.category).icon) + " " + h.name;
+        select.appendChild(opt);
+      });
+    }
+
+    function showToast(message) {
+      const toast = document.createElement("div");
+      toast.className = "toast";
+      toast.textContent = message;
+      document.body.appendChild(toast);
+      requestAnimationFrame(function() { toast.classList.add("show"); });
+      setTimeout(function() {
+        toast.classList.remove("show");
+        setTimeout(function() { toast.remove(); }, 300);
+      }, 3000);
+    }
+
+    function suggestNextInChain(habit) {
+      const today = todayString();
+      const next = habits.filter(function(h) {
+        return !h.archived && h.chainAfter === habit.id && h.lastDone !== today;
+      });
+      if (next.length > 0) {
+        const names = next.map(function(h) { return (h.icon || categoryInfo(h.category).icon) + " " + h.name; }).join(", ");
+        showToast("Nice! Next up: " + names);
+      }
+    }
+
     function matchesFilters(habit) {
       const matchesSearch = !habitSearchQuery || habit.name.toLowerCase().includes(habitSearchQuery);
       const matchesCategory = habitCategoryFilter === "all" || habit.category === habitCategoryFilter;
@@ -1532,6 +1588,8 @@
       document.getElementById("modalIcon").value = habit && habit.icon ? habit.icon : "";
       document.getElementById("modalDescription").value = habit && habit.description ? habit.description : "";
       document.getElementById("modalReminderTime").value = habit && habit.reminderTime ? habit.reminderTime : "";
+      buildChainSelect(isEdit ? index : null);
+      document.getElementById("modalChainAfter").value = habit && habit.chainAfter ? habit.chainAfter : "";
 
       const freqType = habit && habit.frequency ? habit.frequency.type : "daily";
       document.querySelector('input[name="freqType"][value="' + freqType + '"]').checked = true;
@@ -1603,6 +1661,7 @@
       const icon = document.getElementById("modalIcon").value.trim();
       const description = document.getElementById("modalDescription").value.trim();
       const reminderTime = document.getElementById("modalReminderTime").value;
+      const chainAfter = document.getElementById("modalChainAfter").value;
 
       if (editingIndex !== null) {
         const habit = habits[editingIndex];
@@ -1614,13 +1673,15 @@
         habit.icon = icon;
         habit.description = description;
         habit.reminderTime = reminderTime;
+        habit.chainAfter = chainAfter;
         if (goalType === "quantity") { habit.targetQty = targetQty; habit.unit = unit; }
       } else {
         habits.push({
+          id: "h_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 8),
           name: name, category: category, color: color, frequency: frequency,
           goalType: goalType, targetQty: goalType === "quantity" ? targetQty : undefined,
           unit: goalType === "quantity" ? unit : "", dailyProgress: {},
-          icon: icon, description: description, reminderTime: reminderTime,
+          icon: icon, description: description, reminderTime: reminderTime, chainAfter: chainAfter,
           streak: 0, lastDone: null, history: [], badges: [], bestStreak: 0, notes: ""
         });
       }
@@ -1997,6 +2058,7 @@
               if (!habit.history.includes(today)) habit.history.push(today);
               checkBadges(habit);
               addXP(10);
+              suggestNextInChain(habit);
             }
             saveAndRender();
           });
@@ -2021,6 +2083,7 @@
             if (!habit.history.includes(today)) habit.history.push(today);
             checkBadges(habit);
             addXP(10);
+            suggestNextInChain(habit);
             saveAndRender();
           });
         }
@@ -2056,10 +2119,15 @@
         li.appendChild(top);
 
         const cat = categoryInfo(habit.category);
+        let chainLabel = "";
+        if (habit.chainAfter) {
+          const trigger = habits.find(h => h.id === habit.chainAfter);
+          if (trigger) chainLabel = " · 🔗 after " + trigger.name;
+        }
         const meta = document.createElement("div");
         meta.className = "habit-meta";
         meta.innerHTML = "<span class='meta-dot' style='background:" + habit.color + "'></span>" +
-          "<span>" + cat.icon + " " + cat.label + " · " + frequencyLabel(habit) + (habit.description ? " · " + habit.description : "") + "</span>";
+          "<span>" + cat.icon + " " + cat.label + " · " + frequencyLabel(habit) + (habit.description ? " · " + habit.description : "") + chainLabel + "</span>";
         li.appendChild(meta);
         li.appendChild(buildMiniYearGrid(habit, index));
 
