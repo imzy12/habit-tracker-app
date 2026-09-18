@@ -1,26 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Habit Tracker</title>
-  
-  <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-
   <style>
-    :root {
-      --primary: #6366f1;
-      --bg: #0f172a;
-      --surface: #1e293b;
-      --surface-light: #334155;
-      --text: #f8fafc;
-      --text-muted: #94a3b8;
-      --radius: 12px;
-    }
-
     * {
       box-sizing: border-box;
       margin: 0;
@@ -29,22 +16,22 @@
     }
 
     body {
-      background-color: var(--bg);
-      color: var(--text);
+      background-color: #0d1117;
+      color: #f0f6fc;
       min-height: 100vh;
       display: flex;
-      flex-direction: column;
+      justify-content: center;
     }
 
     .app-container {
-      max-width: 600px;
-      margin: 0 auto;
       width: 100%;
+      max-width: 480px;
+      background-color: #161b22;
       min-height: 100vh;
       display: flex;
       flex-direction: column;
       position: relative;
-      padding-bottom: 70px;
+      padding-bottom: 80px;
     }
 
     header {
@@ -54,15 +41,44 @@
       align-items: center;
     }
 
-    .user-greeting h1 {
-      font-size: 1.6rem;
+    .greeting-container h1 {
+      font-size: 1.5rem;
       font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
 
-    .user-greeting p {
-      color: var(--text-muted);
+    .edit-name-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
       font-size: 0.9rem;
+      opacity: 0.6;
+    }
+
+    .edit-name-btn:hover {
+      opacity: 1;
+    }
+
+    .greeting-container p {
+      color: #8b949e;
+      font-size: 0.85rem;
       margin-top: 4px;
+    }
+
+    .add-btn {
+      background-color: #238636;
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      font-size: 1.5rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
     main {
@@ -70,129 +86,120 @@
       flex: 1;
     }
 
-    .tab-content {
-      display: none;
+    .habit-card {
+      background-color: #21262d;
+      border: 1px solid #30363d;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
     }
 
-    .tab-content.active {
-      display: block;
+    .habit-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
     }
 
-    .card {
-      background-color: var(--surface);
-      border-radius: var(--radius);
-      padding: 20px;
-      margin-bottom: 16px;
-    }
-
-    .form-group {
-      margin-bottom: 16px;
-    }
-
-    label {
-      display: block;
-      font-size: 0.85rem;
-      color: var(--text-muted);
-      margin-bottom: 6px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-
-    input[type="text"] {
-      width: 100%;
-      padding: 12px;
-      border-radius: 8px;
-      border: 1px solid var(--surface-light);
-      background-color: var(--bg);
-      color: var(--text);
-      font-size: 1rem;
-      outline: none;
-    }
-
-    input[type="text"]:focus {
-      border-color: var(--primary);
-    }
-
-    button.btn {
-      background-color: var(--primary);
-      color: white;
-      border: none;
-      padding: 12px 20px;
-      border-radius: 8px;
-      font-weight: 600;
-      cursor: pointer;
-      width: 100%;
-      transition: opacity 0.2s;
-    }
-
-    button.btn:hover {
-      opacity: 0.9;
+    .habit-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
     }
 
     nav {
       position: fixed;
       bottom: 0;
-      left: 50%;
-      transform: translateX(-50%);
       width: 100%;
-      max-width: 600px;
-      background-color: var(--surface);
-      border-top: 1px solid var(--surface-light);
+      max-width: 480px;
+      background-color: #161b22;
+      border-top: 1px solid #30363d;
       display: flex;
       justify-content: space-around;
       padding: 12px 0;
-      z-index: 100;
     }
 
-    .nav-btn {
+    .nav-item {
       background: none;
       border: none;
-      color: var(--text-muted);
-      font-size: 0.8rem;
+      color: #8b949e;
+      font-size: 0.75rem;
       cursor: pointer;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 4px;
     }
 
-    .nav-btn.active {
-      color: var(--primary);
+    .nav-item.active {
+      color: #58a6ff;
     }
 
-    /* Modal Styling */
-    .modal-overlay {
+    /* Modal */
+    .modal {
+      display: none;
       position: fixed;
       top: 0;
       left: 0;
-      right: 0;
-      bottom: 0;
+      width: 100%;
+      height: 100%;
       background: rgba(0, 0, 0, 0.7);
-      display: flex;
       align-items: center;
       justify-content: center;
-      padding: 20px;
-      z-index: 1000;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.3s;
+      z-index: 100;
     }
 
-    .modal-overlay.active {
-      opacity: 1;
-      pointer-events: auto;
+    .modal.active {
+      display: flex;
     }
 
-    .modal {
-      background-color: var(--surface);
-      border-radius: var(--radius);
-      width: 100%;
-      max-width: 400px;
+    .modal-content {
+      background-color: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 12px;
       padding: 24px;
+      width: 90%;
+      max-width: 360px;
     }
 
-    .modal h2 {
-      margin-bottom: 12px;
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+
+    .field {
+      margin-bottom: 16px;
+    }
+
+    .field label {
+      display: block;
+      font-size: 0.75rem;
+      color: #8b949e;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+    }
+
+    .field input {
+      width: 100%;
+      padding: 10px;
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      color: white;
+    }
+
+    .save-btn {
+      width: 100%;
+      padding: 10px;
+      background: #238636;
+      border: none;
+      color: white;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
     }
   </style>
 </head>
@@ -200,119 +207,106 @@
 
   <div class="app-container">
     <header>
-      <div class="user-greeting">
-        <h1 id="greetingText">Hi, User</h1>
-        <p>Keep up the great work today!</p>
+      <div class="greeting-container">
+        <h1>
+          Hi, <span id="userName">Alex</span>
+          <button class="edit-name-btn" onclick="openNameModal()" title="Change Name">✏️</button>
+        </h1>
+        <p>Keep up the great work!</p>
       </div>
+      <button class="add-btn" onclick="openHabitModal()">+</button>
     </header>
 
     <main>
-      <!-- Dashboard View -->
-      <section id="dashboard" class="tab-content active">
-        <div class="card">
-          <h3>Today's Progress</h3>
-          <p style="color: var(--text-muted); margin-top: 8px;">Select or add new habits to start tracking.</p>
-        </div>
-      </section>
-
-      <!-- Habits View -->
-      <section id="habits" class="tab-content">
-        <div class="card">
-          <h3>Your Habits</h3>
-          <p style="color: var(--text-muted); margin-top: 8px;">No habits added yet.</p>
-        </div>
-      </section>
-
-      <!-- Analytics View -->
-      <section id="analytics" class="tab-content">
-        <div class="card">
-          <h3>Analytics</h3>
-          <p style="color: var(--text-muted); margin-top: 8px;">Your progress charts will appear here.</p>
-        </div>
-      </section>
-
-      <!-- Settings View -->
-      <section id="settings" class="tab-content">
-        <div class="card">
-          <h3>User Profile</h3>
-          <div class="form-group" style="margin-top: 16px;">
-            <label for="usernameInput">Your Name</label>
-            <input type="text" id="usernameInput" placeholder="Enter your name" />
+      <div class="habit-card">
+        <div class="habit-info">
+          <div class="habit-icon" style="background-color: rgba(225, 29, 72, 0.2); color: #f43f5e;">🔥</div>
+          <div>
+            <h4>Morning Workout</h4>
+            <p style="font-size: 0.8rem; color: #8b949e;">Daily target</p>
           </div>
-          <button class="btn" onclick="saveNameFromSettings()">Save Name</button>
         </div>
-      </section>
+      </div>
     </main>
 
-    <!-- Navigation -->
     <nav>
-      <button class="nav-btn active" onclick="switchTab('dashboard', this)">Dashboard</button>
-      <button class="nav-btn" onclick="switchTab('habits', this)">Habits</button>
-      <button class="nav-btn" onclick="switchTab('analytics', this)">Analytics</button>
-      <button class="nav-btn" onclick="switchTab('settings', this)">Settings</button>
+      <button class="nav-item active">Dashboard</button>
+      <button class="nav-item">Habits</button>
+      <button class="nav-item">Analytics</button>
+      <button class="nav-item" onclick="openNameModal()">Settings</button>
     </nav>
   </div>
 
-  <!-- First-time User Prompt Modal -->
-  <div class="modal-overlay" id="nameModal">
-    <div class="modal">
-      <h2>Welcome!</h2>
-      <p style="color: var(--text-muted); margin-bottom: 16px;">What should we call you?</p>
-      <div class="form-group">
-        <input type="text" id="modalNameInput" placeholder="Enter your name" />
+  <!-- Name Modal -->
+  <div class="modal" id="nameModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Your Name</h3>
+        <button onclick="closeNameModal()" style="background:none; border:none; color:white; cursor:pointer;">✕</button>
       </div>
-      <button class="btn" onclick="saveNameFromModal()">Get Started</button>
+      <div class="field">
+        <label>Enter Name</label>
+        <input type="text" id="nameInput" placeholder="Alex">
+      </div>
+      <button class="save-btn" onclick="saveName()">Save Name</button>
+    </div>
+  </div>
+
+  <!-- Habit Modal -->
+  <div class="modal" id="habitModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>New Habit</h3>
+        <button onclick="closeHabitModal()" style="background:none; border:none; color:white; cursor:pointer;">✕</button>
+      </div>
+      <div class="field">
+        <label>Habit Name</label>
+        <input type="text" placeholder="e.g., Read Books">
+      </div>
+      <div class="field">
+        <label>ICON</label>
+        <input type="text" placeholder="🔥">
+      </div>
+      <div class="field">
+        <label>COLOR</label>
+        <input type="text" placeholder="#f43f5e">
+      </div>
+      <button class="save-btn" onclick="closeHabitModal()">Add Habit</button>
     </div>
   </div>
 
   <script>
-    // Initialize user name on load
+    // Load stored name on startup
     document.addEventListener("DOMContentLoaded", () => {
-      const savedName = localStorage.getItem("tracker_username");
-      if (savedName) {
-        updateGreeting(savedName);
-        document.getElementById("usernameInput").value = savedName;
-      } else {
-        // Show modal for first-time visitors
-        document.getElementById("nameModal").classList.add("active");
+      const storedName = localStorage.getItem("user_name");
+      if (storedName) {
+        document.getElementById("userName").textContent = storedName;
       }
     });
 
-    function updateGreeting(name) {
-      const greetingElement = document.getElementById("greetingText");
-      greetingElement.textContent = `Hi, ${name}`;
+    function openNameModal() {
+      document.getElementById("nameInput").value = document.getElementById("userName").textContent;
+      document.getElementById("nameModal").classList.add("active");
     }
 
-    function saveNameFromModal() {
-      const inputVal = document.getElementById("modalNameInput").value.trim();
-      const nameToSave = inputVal ? inputVal : "User";
-      
-      localStorage.setItem("tracker_username", nameToSave);
-      updateGreeting(nameToSave);
-      document.getElementById("usernameInput").value = nameToSave;
-      
+    function closeNameModal() {
       document.getElementById("nameModal").classList.remove("active");
     }
 
-    function saveNameFromSettings() {
-      const inputVal = document.getElementById("usernameInput").value.trim();
-      const nameToSave = inputVal ? inputVal : "User";
-
-      localStorage.setItem("tracker_username", nameToSave);
-      updateGreeting(nameToSave);
-      alert("Name updated successfully!");
+    function saveName() {
+      const input = document.getElementById("nameInput").value.trim();
+      const finalName = input || "Alex";
+      localStorage.setItem("user_name", finalName);
+      document.getElementById("userName").textContent = finalName;
+      closeNameModal();
     }
 
-    function switchTab(tabId, element) {
-      document.querySelectorAll(".tab-content").forEach(tab => {
-        tab.classList.remove("active");
-      });
-      document.querySelectorAll(".nav-btn").forEach(btn => {
-        btn.classList.remove("active");
-      });
+    function openHabitModal() {
+      document.getElementById("habitModal").classList.add("active");
+    }
 
-      document.getElementById(tabId).classList.add("active");
-      element.classList.add("active");
+    function closeHabitModal() {
+      document.getElementById("habitModal").classList.remove("active");
     }
   </script>
 </body>
