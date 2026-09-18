@@ -23,6 +23,8 @@
       --flame-2: #E63946;
       --amber: #FFC857;
       --flame-grad: linear-gradient(135deg, var(--flame-1), var(--flame-2));
+      --card-shadow: 0 1px 2px rgba(0,0,0,0.4), 0 10px 28px -10px rgba(0,0,0,0.55);
+      --card-shadow-sm: 0 1px 2px rgba(0,0,0,0.35);
     }
     body.light {
       --bg: #FAF8F4;
@@ -31,7 +33,10 @@
       --line: #E7E1D6;
       --text: #211D17;
       --text-muted: #85796A;
+      --card-shadow: 0 1px 2px rgba(35,25,15,0.05), 0 10px 28px -10px rgba(35,25,15,0.14);
+      --card-shadow-sm: 0 1px 2px rgba(35,25,15,0.06);
     }
+    body.light .hero::before { background: radial-gradient(circle, rgba(255,122,69,0.14), rgba(255,122,69,0) 70%); }
 
     body {
       font-family: 'Inter', sans-serif;
@@ -65,7 +70,7 @@
     .dashboard-top-row { display: flex; justify-content: space-between; align-items: center; }
     .dashboard-settings-btn { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--text); padding: 4px; line-height: 1; }
     .dashboard-settings-btn:active { transform: scale(0.92); }
-    .mood-card { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 16px 18px; margin-bottom: 24px; text-align: center; }
+    .mood-card { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 16px 18px; margin-bottom: 24px; text-align: center; box-shadow: var(--card-shadow); }
     .mood-question { font-size: 13px; color: var(--text-muted); margin-bottom: 10px; font-weight: 600; }
     .mood-options { display: flex; justify-content: center; gap: 10px; }
     .mood-btn {
@@ -102,17 +107,28 @@
     .top-bar h2 { font-size: 15px; margin: 0; color: var(--text-muted); font-weight: 500; letter-spacing: 0.3px; }
     .back-btn { border: none; background: none; font-size: 15px; cursor: pointer; color: var(--text); font-family: 'Inter', sans-serif; padding: 4px 0; }
 
-    .hero { text-align: center; padding: 10px 0 20px 0; }
+    .hero { text-align: center; padding: 10px 0 20px 0; position: relative; }
+    .hero::before {
+      content: ""; position: absolute; top: -20px; left: 50%; transform: translateX(-50%);
+      width: 180px; height: 180px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(255,122,69,0.20), rgba(255,122,69,0) 70%);
+      pointer-events: none; z-index: 0;
+    }
     .hero .hero-num {
-      font-size: 60px; font-weight: 700; line-height: 1;
+      font-size: 60px; font-weight: 700; line-height: 1; position: relative;
       background: var(--flame-grad); -webkit-background-clip: text; background-clip: text; color: transparent;
     }
-    .hero .hero-label { color: var(--text-muted); font-size: 13px; margin-top: 6px; }
+    .hero .hero-label { color: var(--text-muted); font-size: 13px; margin-top: 6px; position: relative; }
 
     /* Level card */
     .level-card {
       background: var(--surface); border: 1px solid var(--line); border-radius: 16px;
       padding: 16px 18px; margin-bottom: 24px;
+      box-shadow: var(--card-shadow), 0 0 40px -18px var(--flame-1);
+      position: relative; overflow: hidden;
+    }
+    .level-card::before {
+      content: ""; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: var(--flame-grad);
     }
     .level-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
     .level-left { display: flex; align-items: center; gap: 10px; }
@@ -164,8 +180,12 @@
     .primaryBtn:active { transform: scale(0.96); }
 
     .empty { color: var(--text-muted); font-size: 14px; margin-top: 24px; text-align: center; }
+    .empty-state { display: none; text-align: center; padding: 48px 20px; color: var(--text-muted); }
+    .empty-state-icon { font-size: 40px; margin-bottom: 12px; opacity: 0.85; }
+    .empty-state-title { font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+    .empty-state-text { font-size: 13px; line-height: 1.5; max-width: 240px; margin: 0 auto; }
 
-    .stat-habit { background: var(--surface); border-radius: 14px; padding: 16px; margin-bottom: 10px; border: 1px solid var(--line); }
+    .stat-habit { background: var(--surface); border-radius: 14px; padding: 16px; margin-bottom: 10px; border: 1px solid var(--line); box-shadow: var(--card-shadow-sm); }
     .stat-habit .name { font-weight: 500; margin-bottom: 10px; font-size: 14px; }
     .week-row { display: flex; gap: 6px; justify-content: space-between; }
     .day-dot { flex: 1; text-align: center; font-size: 10px; color: var(--text-muted); }
@@ -192,7 +212,8 @@
     .rank-num { width: 22px; font-weight: 700; color: var(--text-muted); font-family: 'Space Grotesk', sans-serif; }
     .leader-name { flex: 1; }
     .leader-streak { color: var(--flame-1); font-weight: 600; font-family: 'Space Grotesk', sans-serif; }
-    .league-card { display: flex; justify-content: space-between; align-items: center; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px; margin-bottom: 8px; cursor: pointer; color: var(--text); font-size: 14px; }
+    .league-card { display: flex; justify-content: space-between; align-items: center; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px; margin-bottom: 8px; cursor: pointer; color: var(--text); font-size: 14px; box-shadow: var(--card-shadow-sm); transition: transform 0.15s; }
+    .league-card:active { transform: scale(0.98); }
     .league-code { color: var(--text-muted); font-family: 'Space Grotesk', sans-serif; font-size: 12px; }
 
     .hub-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 24px; }
@@ -200,20 +221,21 @@
       background: var(--surface); border: 1px solid var(--line); border-radius: 16px;
       padding: 22px 14px; text-align: center; cursor: pointer; color: var(--text);
       font-family: 'Inter', sans-serif; display: flex; flex-direction: column; align-items: center; gap: 8px;
+      box-shadow: var(--card-shadow-sm); transition: transform 0.15s, box-shadow 0.15s;
     }
-    .hub-tile:active { transform: scale(0.97); background: var(--surface-2); }
+    .hub-tile:active { transform: scale(0.97); background: var(--surface-2); box-shadow: var(--card-shadow-sm); }
     .hub-tile .hub-icon { font-size: 26px; }
     .hub-tile .hub-label { font-size: 13px; font-weight: 600; }
 
     .filter-row { display: flex; gap: 8px; margin-bottom: 16px; }
     .filter-row .modal-input { flex: 1; padding: 10px 12px; }
 
-    .premium-card { text-align: center; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 24px; margin-bottom: 10px; }
+    .premium-card { text-align: center; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 24px; margin-bottom: 10px; box-shadow: var(--card-shadow); }
     .premium-features { list-style: none; padding: 0; margin: 0; }
     .premium-features li { padding: 10px 4px; border-bottom: 1px solid var(--line); font-size: 14px; color: var(--text); }
     .premium-features li::before { content: "✓ "; color: var(--flame-1); font-weight: 700; }
 
-    .calendar-card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px; margin-bottom: 20px; }
+    .calendar-card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px; margin-bottom: 20px; box-shadow: var(--card-shadow-sm); }
     .calendar-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-weight: 600; font-size: 14px; color: var(--text); }
     .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
     .cal-dow { text-align: center; font-size: 10px; color: var(--text-muted); padding-bottom: 4px; }
@@ -236,25 +258,44 @@
     .bottom-nav {
       position: fixed; bottom: 0; left: 0; right: 0; background: var(--bg);
       border-top: 1px solid var(--line); display: flex; justify-content: space-around; padding: 12px 0 16px 0;
+      box-shadow: 0 -4px 16px rgba(0,0,0,0.15);
     }
     .nav-btn {
       background: none; border: none; font-size: 11px; color: var(--text-muted);
       display: flex; flex-direction: column; align-items: center; gap: 3px; cursor: pointer; font-family: 'Inter', sans-serif;
+      position: relative; padding: 2px 10px; transition: color 0.15s;
     }
-    .nav-btn .icon { font-size: 19px; }
+    .nav-btn .icon { font-size: 19px; position: relative; z-index: 1; transition: transform 0.15s; }
     .nav-btn.active { color: var(--flame-1); }
+    .nav-btn.active .icon { transform: translateY(-1px); }
+    .nav-btn.active::before {
+      content: ""; position: absolute; top: -4px; left: 50%; transform: translateX(-50%);
+      width: 28px; height: 28px; border-radius: 50%; background: color-mix(in srgb, var(--flame-1) 16%, transparent);
+    }
+
+    @keyframes fadeSlideUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+    #page-home.reveal > * { opacity: 0; animation: fadeSlideUp 0.5s ease forwards; }
+    #page-home.reveal > *:nth-child(1) { animation-delay: 0.05s; }
+    #page-home.reveal > *:nth-child(2) { animation-delay: 0.12s; }
+    #page-home.reveal > *:nth-child(3) { animation-delay: 0.19s; }
+    #page-home.reveal > *:nth-child(4) { animation-delay: 0.26s; }
+    #page-home.reveal > *:nth-child(5) { animation-delay: 0.33s; }
+    #page-home.reveal > *:nth-child(6) { animation-delay: 0.38s; }
+    @media (prefers-reduced-motion: reduce) {
+      #page-home.reveal > * { animation: none; opacity: 1; }
+    }
 
     .badge-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 24px; }
     .badge {
       background: var(--surface); border-radius: 14px; padding: 14px 4px; text-align: center;
       border: 1px solid var(--line); opacity: 0.4;
     }
-    .badge.unlocked { opacity: 1; border: 1px solid var(--flame-1); box-shadow: 0 0 0 1px var(--flame-1) inset; }
+    .badge.unlocked { opacity: 1; border: 1px solid var(--flame-1); box-shadow: 0 0 0 1px var(--flame-1) inset, 0 0 24px -10px var(--flame-1); }
     .badge .icon { font-size: 24px; display: block; margin-bottom: 4px; }
     .badge .label { font-size: 10px; color: var(--text-muted); }
 
     #celebration, #dayModal, #habitModal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); align-items: center; justify-content: center; z-index: 100; padding: 20px; }
-    #celebration .box, #dayModal .box, #habitModal .box { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 26px; text-align: center; max-width: 300px; width: 85%; }
+    #celebration .box, #dayModal .box, #habitModal .box { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 26px; text-align: center; max-width: 300px; width: 85%; box-shadow: 0 20px 48px -12px rgba(0,0,0,0.5); }
     #celebration .icon { font-size: 46px; margin-bottom: 10px; }
     #celebration button, #dayModal button {
       margin-top: 16px; padding: 10px 22px; border: none; background: var(--flame-grad); color: white;
@@ -293,7 +334,7 @@
       color: white; cursor: pointer; font-family: 'Inter', sans-serif; font-weight: 600; font-size: 14px;
     }
 
-    .heatmap-card { background: var(--surface); border-radius: 14px; padding: 16px; margin-bottom: 20px; border: 1px solid var(--line); }
+    .heatmap-card { background: var(--surface); border-radius: 14px; padding: 16px; margin-bottom: 20px; border: 1px solid var(--line); box-shadow: var(--card-shadow-sm); }
     .heatmap-tabs { display: flex; gap: 6px; margin-bottom: 14px; }
     .heatmap-tab {
       flex: 1; padding: 7px 0; text-align: center; font-size: 12px; border: none;
@@ -320,7 +361,7 @@
     }
     .detail-hero .streak-label { font-size: 13px; color: var(--text-muted); }
     .detail-stats-row { display: flex; gap: 10px; margin-bottom: 24px; }
-    .detail-stat-box { flex: 1; background: var(--surface); border-radius: 14px; padding: 14px; text-align: center; border: 1px solid var(--line); }
+    .detail-stat-box { flex: 1; background: var(--surface); border-radius: 14px; padding: 14px; text-align: center; border: 1px solid var(--line); box-shadow: var(--card-shadow-sm); }
     .detail-stat-box .num { font-size: 20px; font-weight: 700; font-family: 'Space Grotesk', sans-serif; }
     .detail-stat-box .label { font-size: 11px; color: var(--text-muted); }
     #detailNotes {
@@ -426,7 +467,7 @@
         <select id="categoryFilter" class="modal-input"></select>
       </div>
       <ul id="habitList"></ul>
-      <p class="empty" id="emptyMsg">No habits yet — add one to get started.</p>
+      <div class="empty-state" id="emptyMsg"></div>
       <div class="section-label">Archived</div>
       <div id="archivedList"></div>
     </div>
@@ -768,6 +809,7 @@
     if (localStorage.getItem("onboarded") === "true") {
       onboarding.style.display = "none";
       app.style.display = "block";
+      document.getElementById("page-home").classList.add("reveal");
     }
 
     const ONBOARD_Q1_OPTIONS = [
@@ -848,6 +890,7 @@
       localStorage.setItem("onboarded", "true");
       onboarding.style.display = "none";
       app.style.display = "block";
+      document.getElementById("page-home").classList.add("reveal");
     });
 
     function updateGreeting() {
@@ -2273,9 +2316,9 @@
       list.innerHTML = "";
       const activeHabits = habits.filter(h => !h.archived);
       const visibleCount = activeHabits.filter(matchesFilters).length;
-      emptyMsg.textContent = activeHabits.length === 0
-        ? "No habits yet — add one to get started."
-        : "No habits match your search.";
+      emptyMsg.innerHTML = activeHabits.length === 0
+        ? "<div class='empty-state-icon'>🌱</div><div class='empty-state-title'>No habits yet</div><div class='empty-state-text'>Tap \u201c+ Add Habit\u201d above to plant your first one.</div>"
+        : "<div class='empty-state-icon'>🔍</div><div class='empty-state-title'>No matches</div><div class='empty-state-text'>Try a different search or category filter.</div>";
       emptyMsg.style.display = visibleCount === 0 ? "block" : "none";
       const today = todayString();
 
