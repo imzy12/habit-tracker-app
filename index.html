@@ -5,10 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Habit Tracker</title>
   <link rel="manifest" href="manifest.json">
-  <link href="https://googleapis.com" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <!-- Needed for the Leagues feature (free Firebase Firestore) — see FIREBASE_CONFIG near the top of the <script> below -->
-  <script src="https://gstatic.com"></script>
-  <script src="https://gstatic.com"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <style>
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
@@ -149,89 +149,4 @@
 
     .stat-habit { background: var(--surface); border-radius: 14px; padding: 16px; margin-bottom: 10px; border: 1px solid var(--line); }
     .stat-habit .name { font-weight: 500; margin-bottom: 10px; font-size: 14px; }
-    
-    .week-row { 
-      display: flex; 
-      gap: 6px; 
-      justify-content: space-between; 
-      align-items: center; 
-      margin-top: 8px; 
-    }
-
-    /* Activity Matrix Styles */
-    .contribution-section {
-      background: var(--surface);
-      border: 1px solid var(--line);
-      border-radius: 16px;
-      padding: 16px 18px;
-      margin-top: 24px;
-      margin-bottom: 24px;
-      overflow-x: auto;
-      max-width: 100%;
-    }
-
-    .contribution-section h3 {
-      font-size: 13px;
-      color: var(--text-muted);
-      margin-top: 0;
-      margin-bottom: 12px;
-      font-weight: 600;
-      letter-spacing: 0.3px;
-    }
-
-    .heatmap-container {
-      display: flex;
-      gap: 8px;
-      min-width: max-content;
-    }
-
-    .grid-months-labels {
-      display: flex;
-      font-size: 10px;
-      color: var(--text-muted);
-      margin-left: 28px;
-      margin-bottom: 4px;
-      height: 14px;
-      position: relative;
-      min-width: max-content;
-    }
-
-    .month-label {
-      position: absolute;
-      transform: translateX(-50%);
-      white-space: nowrap;
-    }
-
-    .grid-days-labels {
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      font-size: 10px;
-      color: var(--text-muted);
-      height: 81px;
-      padding: 1px 0;
-    }
-
-    .contribution-grid {
-      display: grid;
-      grid-flow: column;
-      grid-template-rows: repeat(7, 9px);
-      grid-auto-columns: 9px;
-      gap: 3px;
-    }
-
-    .grid-cell {
-      width: 9px;
-      height: 9px;
-      border-radius: 2px;
-      background-color: var(--surface-2);
-      transition: background 0.2s ease, transform 0.1s ease;
-      cursor: pointer;
-    }
-
-    .grid-cell:hover {
-      transform: scale(1.25);
-      z-index: 2;
-    }
-
-    .grid-cell.level-1 { background-color: var(--line); }
+    .week-row { display: flex; gap: 
