@@ -62,6 +62,9 @@
     }
     .onboard-option.selected { border-color: var(--flame-1); background: var(--surface-2); box-shadow: 0 0 0 1px var(--flame-1) inset; }
     .dashboard-greeting { font-size: 15px; font-weight: 600; color: var(--text); padding-top: 4px; }
+    .dashboard-top-row { display: flex; justify-content: space-between; align-items: center; }
+    .dashboard-settings-btn { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--text); padding: 4px; line-height: 1; }
+    .dashboard-settings-btn:active { transform: scale(0.92); }
     .mood-card { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 16px 18px; margin-bottom: 24px; text-align: center; }
     .mood-question { font-size: 13px; color: var(--text-muted); margin-bottom: 10px; font-weight: 600; }
     .mood-options { display: flex; justify-content: center; gap: 10px; }
@@ -75,6 +78,14 @@
       width: 20px; height: 20px; margin: 3px auto; border-radius: 6px; background: var(--surface-2);
       display: flex; align-items: center; justify-content: center; font-size: 13px; cursor: pointer;
     }
+    .settings-group-label {
+      font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
+      color: var(--text-muted); margin: 24px 4px 8px 4px;
+    }
+    .settings-group-label:first-of-type { margin-top: 8px; }
+    .settings-static { font-size: 13px; color: var(--text-muted); }
+    .settings-link { text-decoration: none; color: var(--text); cursor: pointer; }
+    .settings-chevron { color: var(--text-muted); font-size: 16px; }
 
     #app { display: none; padding: 24px 18px 100px 18px; max-width: 420px; margin: 0 auto; }
     .page { display: none; }
@@ -358,7 +369,10 @@
 
   <div id="app">
     <div class="page active" id="page-home">
-      <div class="dashboard-greeting" id="userGreeting"></div>
+      <div class="dashboard-top-row">
+        <div class="dashboard-greeting" id="userGreeting"></div>
+        <button class="dashboard-settings-btn" id="dashboardSettingsBtn" title="Settings">⚙️</button>
+      </div>
       <div class="hero">
         <div class="hero-num num-font" id="heroStreak">0</div>
         <div class="hero-label">longest active streak</div>
@@ -510,9 +524,16 @@
 
     <div class="page" id="page-settings">
       <div class="top-bar"><h2>Settings</h2></div>
-      <div class="setting-row"><span>Light mode</span><button id="themeToggle">Toggle</button></div>
+
+      <div class="settings-group-label">App</div>
+      <div class="setting-row"><span>Theme</span><button id="themeToggle">Toggle</button></div>
+      <div class="setting-row"><span>Language</span><span class="settings-static">English</span></div>
       <div class="setting-row"><span>General reminder (all habits)</span><input type="time" id="reminderTime"></div>
       <div class="setting-row"><span>Enable notifications</span><button id="enableNotif">Enable</button></div>
+      <div class="setting-row"><span>Calm background music</span><button id="calmMusicToggle">Off</button></div>
+      <div class="setting-row"><span>Music volume</span><input type="range" id="calmMusicVolume" min="0" max="100" style="flex:1; margin-left:12px;"></div>
+
+      <div class="settings-group-label">Data &amp; Backup</div>
       <div class="setting-row"><span>Backup your data</span><button id="exportBtn">Export</button></div>
       <div class="setting-row">
         <span>Restore from file</span>
@@ -523,8 +544,20 @@
       <div class="setting-row"><span>Cloud backup</span><span id="cloudSyncStatus" style="font-size:12px; color:var(--text-muted);">Not synced yet</span></div>
       <div class="setting-row"><span>Restore on this device</span><button id="cloudRestoreBtn">Restore</button></div>
       <div class="setting-row"><span>Use a different sync code</span><button id="useOtherCodeBtn">Enter code</button></div>
-      <div class="setting-row"><span>Calm background music</span><button id="calmMusicToggle">Off</button></div>
-      <div class="setting-row"><span>Music volume</span><input type="range" id="calmMusicVolume" min="0" max="100" style="flex:1; margin-left:12px;"></div>
+
+      <div class="settings-group-label">Help</div>
+      <a class="setting-row settings-link" href="mailto:REPLACE_WITH_YOUR_EMAIL?subject=Habit%20Tracker%20Support">
+        <span>Contact support</span><span class="settings-chevron">›</span>
+      </a>
+      <a class="setting-row settings-link" href="mailto:REPLACE_WITH_YOUR_EMAIL?subject=Habit%20Tracker%20Feedback">
+        <span>Send feedback</span><span class="settings-chevron">›</span>
+      </a>
+
+      <div class="settings-group-label">About</div>
+      <a class="setting-row settings-link" href="https://REPLACE_WITH_YOUR_WEBSITE" target="_blank" rel="noopener">
+        <span>Website</span><span class="settings-chevron">›</span>
+      </a>
+      <div class="setting-row"><span>Version</span><span class="settings-static">1.0.0</span></div>
     </div>
 
     <nav class="bottom-nav">
@@ -886,6 +919,10 @@
     }
 
     renderMoodCard();
+
+    document.getElementById("dashboardSettingsBtn").addEventListener("click", function() {
+      document.querySelector('.nav-btn[data-page="settings"]').click();
+    });
 
     document.querySelectorAll(".nav-btn").forEach(function(btn) {
       btn.addEventListener("click", function() {
