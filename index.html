@@ -89,10 +89,10 @@ main{flex:1;overflow-y:auto;padding:0 20px 40px}
 #modal-sheet{width:100%;max-width:480px;margin:0 auto;background:var(--card);border:1px solid var(--border);border-radius:24px 24px 0 0;padding:24px;transform:translateY(100%);transition:transform .35s cubic-bezier(.34,1.56,.64,1)}
 #modal-overlay.open #modal-sheet{transform:translateY(0)}
 
-#premium-modal-overlay,#name-modal-overlay,#settings-modal-overlay{position:fixed;inset:0;z-index:50;display:flex;align-items:flex-end;background:rgba(0,0,0,.75);backdrop-filter:blur(5px);opacity:0;pointer-events:none;transition:opacity .25s}
-#premium-modal-overlay.open,#name-modal-overlay.open,#settings-modal-overlay.open{opacity:1;pointer-events:all}
-#premium-modal-sheet,#name-modal-sheet,#settings-modal-sheet{width:100%;max-width:480px;margin:0 auto;background:var(--card);border:1px solid var(--border);border-radius:24px 24px 0 0;padding:24px;max-height:85vh;overflow-y:auto;transform:translateY(100%);transition:transform .35s cubic-bezier(.34,1.56,.64,1)}
-#premium-modal-overlay.open #premium-modal-sheet,#name-modal-overlay.open #name-modal-sheet,#settings-modal-overlay.open #settings-modal-sheet{transform:translateY(0)}
+#premium-modal-overlay,#settings-modal-overlay{position:fixed;inset:0;z-index:50;display:flex;align-items:flex-end;background:rgba(0,0,0,.75);backdrop-filter:blur(5px);opacity:0;pointer-events:none;transition:opacity .25s}
+#premium-modal-overlay.open,#settings-modal-overlay.open{opacity:1;pointer-events:all}
+#premium-modal-sheet,#settings-modal-sheet{width:100%;max-width:480px;margin:0 auto;background:var(--card);border:1px solid var(--border);border-radius:24px 24px 0 0;padding:24px;max-height:85vh;overflow-y:auto;transform:translateY(100%);transition:transform .35s cubic-bezier(.34,1.56,.64,1)}
+#premium-modal-overlay.open #premium-modal-sheet,#settings-modal-overlay.open #settings-modal-sheet{transform:translateY(0)}
 
 .icon-grid{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
 .icon-opt{width:40px;height:40px;border-radius:12px;font-size:20px;display:flex;align-items:center;justify-content:center;background:var(--muted);cursor:pointer;border:none;transition:all .15s}
@@ -121,6 +121,31 @@ main{flex:1;overflow-y:auto;padding:0 20px 40px}
 
 #toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(16px);background:var(--card2);border:1.5px solid var(--accent);color:var(--accent);padding:10px 20px;border-radius:14px;font-size:13px;font-weight:600;opacity:0;pointer-events:none;transition:all .3s;z-index:99;white-space:nowrap}
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+#loading-screen{position:fixed;inset:0;z-index:100;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity .5s ease}
+#loading-screen.fade-out{opacity:0;pointer-events:none}
+.loading-icon{font-size:52px;animation:loadingPulse 1.4s ease-in-out infinite}
+@keyframes loadingPulse{0%,100%{transform:scale(1);opacity:.85}50%{transform:scale(1.12);opacity:1}}
+.loading-title{font-size:22px;font-weight:800;margin-top:14px;opacity:0;animation:loadingFadeIn .6s ease .2s forwards}
+.loading-sub{font-size:12px;color:var(--dim);margin-top:4px;opacity:0;animation:loadingFadeIn .6s ease .5s forwards}
+@keyframes loadingFadeIn{to{opacity:1}}
+.loading-bar{width:120px;height:3px;border-radius:99px;background:var(--muted);overflow:hidden;margin-top:26px}
+.loading-bar-fill{height:100%;width:0%;background:linear-gradient(90deg,var(--primary),var(--accent));border-radius:99px;animation:loadingFill 1.6s ease forwards}
+@keyframes loadingFill{to{width:100%}}
+
+#intro-overlay{position:fixed;inset:0;z-index:90;background:var(--bg);display:none;flex-direction:column;align-items:center;justify-content:center;padding:30px;opacity:0;transition:opacity .4s ease}
+#intro-overlay.show{display:flex}
+#intro-overlay.visible{opacity:1}
+.intro-step{display:none;flex-direction:column;align-items:center;text-align:center;width:100%;max-width:320px}
+.intro-step.active{display:flex;animation:fadeScale .35s ease}
+.intro-emoji{font-size:40px;margin-bottom:14px}
+.intro-label{font-size:11px;letter-spacing:.1em;color:var(--dim);font-weight:700;margin-bottom:16px}
+.intro-name-input{background:none;border:none;border-bottom:2px solid var(--border);text-align:center;font-size:28px;font-weight:800;color:var(--fg);padding:8px 4px;width:100%;outline:none}
+.intro-name-input:focus{border-color:var(--primary)}
+.intro-greet-text{font-size:26px;font-weight:800;line-height:1.4;color:var(--accent);min-height:70px}
+.intro-options{display:flex;flex-direction:column;gap:10px;width:100%}
+.intro-option{padding:14px 16px;border-radius:14px;border:1.5px solid var(--border);background:var(--card);color:var(--fg);font-size:14px;text-align:left;cursor:pointer;transition:all .15s}
+.intro-option:active{transform:scale(.97);background:var(--muted)}
 </style>
 </head>
 <body>
@@ -152,17 +177,33 @@ main{flex:1;overflow-y:auto;padding:0 20px 40px}
   </div>
 </div>
 
-<div id="name-modal-overlay">
-  <div id="name-modal-sheet">
-    <div style="text-align:center;margin-bottom:18px">
-      <div style="font-size:34px">👋</div>
-      <div class="fd" style="font-weight:800;font-size:20px;margin:10px 0 4px">Welcome to Habit Friction</div>
-      <p style="font-size:13px;color:var(--dim)">What should we call you?</p>
-    </div>
-    <input id="name-input" class="text-input" type="text" placeholder="Your name"/>
-    <button class="btn-primary" id="name-save-btn">Let's go</button>
+<div id="loading-screen">
+  <div class="loading-icon">⚡</div>
+  <div class="loading-title fd">Habit Friction</div>
+  <div class="loading-sub fm">Track. Streak. Level Up.</div>
+  <div class="loading-bar"><div class="loading-bar-fill"></div></div>
+</div>
+
+<div id="intro-overlay">
+  <div class="intro-step active" id="intro-step-name">
+    <div class="intro-emoji">👋</div>
+    <div class="intro-label fm">WELCOME TO HABIT FRICTION</div>
+    <input id="name-input" class="intro-name-input fd" type="text" placeholder="Your name" autocomplete="off"/>
+    <button class="btn-primary" id="name-save-btn" style="max-width:220px;margin-top:28px">Continue</button>
+  </div>
+
+  <div class="intro-step" id="intro-step-greet">
+    <div class="intro-emoji">✨</div>
+    <div class="intro-greet-text fd" id="intro-greet-text"></div>
+  </div>
+
+  <div class="intro-step" id="intro-step-question">
+    <div class="intro-emoji">🔎</div>
+    <div class="intro-label fm">WHAT BROUGHT YOU HERE?</div>
+    <div class="intro-options" id="intro-options"></div>
   </div>
 </div>
+
 
 <div id="premium-modal-overlay">
   <div id="premium-modal-sheet">
@@ -271,6 +312,7 @@ function save(){ localStorage.setItem('hf_v2',JSON.stringify(S)); }
 let S=loadState(), currentTab='today', newIcon=ICONS[0], newColor=COLORS[0];
 if (S.userName === undefined) S.userName = '';
 if (S.isPremium === undefined) S.isPremium = false;
+if (S.referralSource === undefined) S.referralSource = '';
 const $=id=>document.getElementById(id);
 const level=xp=>Math.floor(xp/100)+1;
 const xpMod=xp=>xp%100;
@@ -566,16 +608,83 @@ document.querySelectorAll('.tab-btn').forEach(btn=>btn.addEventListener('click',
   else if(currentTab==='badges')renderBadges();
 }));
 
-/* ---------- Name capture (mandatory on first run) ---------- */
-function openNameModal(){$('name-modal-overlay').classList.add('open');setTimeout(()=>$('name-input').focus(),360);}
-function closeNameModal(){$('name-modal-overlay').classList.remove('open');}
-$('name-save-btn').addEventListener('click',()=>{
-  const n=$('name-input').value.trim();
-  if(!n)return;
-  S.userName=n; save(); closeNameModal(); renderHeader();
-  if(currentTab==='badges')renderBadges();
+/* ---------- Loading screen + first-run intro flow ---------- */
+
+const REFERRAL_OPTIONS = [
+  {icon:'👥',label:'A friend recommended it'},
+  {icon:'📱',label:'Social media'},
+  {icon:'🔍',label:'Searched for it'},
+  {icon:'🏪',label:'App Store'},
+  {icon:'✨',label:'Something else'}
+];
+
+function typeWriter(el, text, speed, cb){
+  el.textContent = '';
+  let i = 0;
+  const timer = setInterval(()=>{
+    el.textContent += text.charAt(i);
+    i++;
+    if(i >= text.length){ clearInterval(timer); if(cb) setTimeout(cb, 900); }
+  }, speed);
+}
+
+function showIntroStep(id){
+  document.querySelectorAll('.intro-step').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function startIntroFlow(){
+  const overlay = $('intro-overlay');
+  overlay.classList.add('show');
+  requestAnimationFrame(()=>overlay.classList.add('visible'));
+  showIntroStep('intro-step-name');
+  setTimeout(()=>$('name-input').focus(), 500);
+}
+
+function finishIntroFlow(){
+  const overlay = $('intro-overlay');
+  overlay.classList.remove('visible');
+  setTimeout(()=>{ overlay.classList.remove('show'); }, 400);
+}
+
+function buildIntroOptions(){
+  const container = $('intro-options');
+  container.innerHTML = '';
+  REFERRAL_OPTIONS.forEach(opt=>{
+    const btn = document.createElement('button');
+    btn.className = 'intro-option';
+    btn.textContent = opt.icon + ' ' + opt.label;
+    btn.addEventListener('click', ()=>{
+      S.referralSource = opt.icon + ' ' + opt.label;
+      save();
+      finishIntroFlow();
+    });
+    container.appendChild(btn);
+  });
+}
+
+$('name-save-btn').addEventListener('click', ()=>{
+  const n = $('name-input').value.trim();
+  if(!n) return;
+  S.userName = n; save(); renderHeader();
+  if(currentTab==='badges') renderBadges();
+  showIntroStep('intro-step-greet');
+  typeWriter($('intro-greet-text'), 'Nice to meet you, ' + n + '! ✨', 45, ()=>{
+    buildIntroOptions();
+    showIntroStep('intro-step-question');
+  });
 });
-$('name-input').addEventListener('keydown',e=>{if(e.key==='Enter')$('name-save-btn').click();});
+$('name-input').addEventListener('keydown', e=>{ if(e.key==='Enter') $('name-save-btn').click(); });
+
+window.addEventListener('load', ()=>{
+  setTimeout(()=>{
+    $('loading-screen').classList.add('fade-out');
+    setTimeout(()=>{
+      $('loading-screen').remove();
+      if(!S.userName){ startIntroFlow(); }
+    }, 500);
+  }, 1600);
+});
 
 /* ---------- Premium ---------- */
 /*
@@ -651,7 +760,6 @@ $('settings-modal-overlay').addEventListener('click', e=>{ if(e.target===$('sett
 
 renderHeader();
 renderToday();
-if(!S.userName){ openNameModal(); }
 </script>
 </body>
 </html>
