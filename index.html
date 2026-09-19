@@ -89,6 +89,11 @@ main{flex:1;overflow-y:auto;padding:0 20px 40px}
 #modal-sheet{width:100%;max-width:480px;margin:0 auto;background:var(--card);border:1px solid var(--border);border-radius:24px 24px 0 0;padding:24px;transform:translateY(100%);transition:transform .35s cubic-bezier(.34,1.56,.64,1)}
 #modal-overlay.open #modal-sheet{transform:translateY(0)}
 
+#premium-modal-overlay,#name-modal-overlay{position:fixed;inset:0;z-index:50;display:flex;align-items:flex-end;background:rgba(0,0,0,.75);backdrop-filter:blur(5px);opacity:0;pointer-events:none;transition:opacity .25s}
+#premium-modal-overlay.open,#name-modal-overlay.open{opacity:1;pointer-events:all}
+#premium-modal-sheet,#name-modal-sheet{width:100%;max-width:480px;margin:0 auto;background:var(--card);border:1px solid var(--border);border-radius:24px 24px 0 0;padding:24px;max-height:85vh;overflow-y:auto;transform:translateY(100%);transition:transform .35s cubic-bezier(.34,1.56,.64,1)}
+#premium-modal-overlay.open #premium-modal-sheet,#name-modal-overlay.open #name-modal-sheet{transform:translateY(0)}
+
 .icon-grid{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
 .icon-opt{width:40px;height:40px;border-radius:12px;font-size:20px;display:flex;align-items:center;justify-content:center;background:var(--muted);cursor:pointer;border:none;transition:all .15s}
 .icon-opt.sel{background:var(--primary);transform:scale(1.15)}
@@ -147,6 +152,56 @@ main{flex:1;overflow-y:auto;padding:0 20px 40px}
   </div>
 </div>
 
+<div id="name-modal-overlay">
+  <div id="name-modal-sheet">
+    <div style="text-align:center;margin-bottom:18px">
+      <div style="font-size:34px">👋</div>
+      <div class="fd" style="font-weight:800;font-size:20px;margin:10px 0 4px">Welcome to HabitForge</div>
+      <p style="font-size:13px;color:var(--dim)">What should we call you?</p>
+    </div>
+    <input id="name-input" class="text-input" type="text" placeholder="Your name"/>
+    <button class="btn-primary" id="name-save-btn">Let's go</button>
+  </div>
+</div>
+
+<div id="premium-modal-overlay">
+  <div id="premium-modal-sheet">
+    <div style="display:flex;justify-content:flex-end;margin-bottom:4px">
+      <button id="premium-modal-close" style="width:32px;height:32px;border-radius:12px;font-size:16px;color:var(--dim);display:flex;align-items:center;justify-content:center">✕</button>
+    </div>
+    <div style="text-align:center;margin-bottom:20px">
+      <div style="font-size:34px">⚡</div>
+      <div class="fd" style="font-weight:800;font-size:20px;margin:10px 0 6px">Unlock Total Friction Control</div>
+      <p style="font-size:13px;color:var(--dim);line-height:1.5;margin-bottom:8px">Break the loops holding you back. Reclaim your focus.</p>
+      <p id="premium-status-text" class="fm" style="font-size:12px;color:var(--dim)"></p>
+    </div>
+    <div class="section-lbl">WHAT YOU GET</div>
+    <div id="premium-features" style="margin-bottom:18px"></div>
+    <div class="section-lbl">CHOOSE A PLAN</div>
+    <div style="display:flex;gap:10px;margin-bottom:8px">
+      <div class="card" style="flex:1;text-align:center;padding:14px 10px">
+        <div style="font-size:11px;color:var(--dim);font-weight:600;margin-bottom:4px">Monthly</div>
+        <div class="fd" id="price-monthly" style="font-weight:800;font-size:20px"></div>
+        <div style="font-size:10px;color:var(--dim);margin-bottom:10px">per month</div>
+        <a id="buy-monthly-btn" class="btn-primary" style="display:block;text-decoration:none;font-size:13px;padding:10px 0" href="#" target="_blank" rel="noopener">Subscribe</a>
+      </div>
+      <div class="card" style="flex:1;text-align:center;padding:14px 10px;border-color:var(--accent);position:relative">
+        <div class="pill" style="position:absolute;top:-10px;left:50%;transform:translateX(-50%);background:var(--accent);color:#0a1200;white-space:nowrap">Best value</div>
+        <div style="font-size:11px;color:var(--dim);font-weight:600;margin-bottom:4px;margin-top:4px">One-time</div>
+        <div class="fd" id="price-once" style="font-weight:800;font-size:20px"></div>
+        <div style="font-size:10px;color:var(--dim);margin-bottom:10px">unlock forever</div>
+        <a id="buy-once-btn" class="btn-primary" style="display:block;text-decoration:none;font-size:13px;padding:10px 0" href="#" target="_blank" rel="noopener">Buy once</a>
+      </div>
+    </div>
+    <p style="font-size:10px;color:var(--dim);text-align:center;margin-bottom:16px">Prices shown in your local currency (estimate). Exact amount confirmed at checkout.</p>
+    <div class="section-lbl">ALREADY PAID?</div>
+    <div style="display:flex;gap:8px">
+      <input id="redeem-code-input" class="text-input" style="margin-bottom:0" type="text" placeholder="Enter your code"/>
+      <button id="redeem-code-btn" class="btn-primary" style="width:auto;padding:0 18px">Unlock</button>
+    </div>
+  </div>
+</div>
+
 <div id="toast"></div>
 
 <script>
@@ -180,11 +235,14 @@ function loadState() {
     habits: DEFAULT_HABITS.map(h=>({...h,done:false,dates:[]})),
     totalXP:47, journalEntries:[], earnedBadges:['first','week'],
     selectedDay:todayStr, mood:4,
+    userName:'', isPremium:false,
   };
 }
 function save(){ localStorage.setItem('hf_v2',JSON.stringify(S)); }
 
 let S=loadState(), currentTab='today', newIcon=ICONS[0], newColor=COLORS[0];
+if (S.userName === undefined) S.userName = '';
+if (S.isPremium === undefined) S.isPremium = false;
 const $=id=>document.getElementById(id);
 const level=xp=>Math.floor(xp/100)+1;
 const xpMod=xp=>xp%100;
@@ -212,16 +270,23 @@ function renderHeader(){
   const done=S.habits.filter(h=>h.done).length, total=S.habits.length;
   const pct=total?done/total:0, lv=level(S.totalXP), xpPct=Math.min((xpMod(S.totalXP)/100)*100,100);
   const r=22, circ=2*Math.PI*r;
+  const displayName = S.userName || 'there';
+  const initial = (S.userName || '?').charAt(0).toUpperCase();
+  const nearLimit = !S.isPremium && S.habits.length >= FREE_HABIT_LIMIT;
+  const premiumBtnStyle = nearLimit
+    ? 'background:var(--accent);color:#0a1200;white-space:nowrap;font-weight:800'
+    : 'background:rgba(124,58,237,.18);color:#a78bfa;white-space:nowrap';
   $('header').innerHTML=`
     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px">
       <div>
         <p class="fm" style="font-size:12px;color:var(--dim);margin-bottom:3px">${today.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'})}</p>
         <h1 class="fd" style="font-size:27px;font-weight:800;line-height:1.15">${done===total&&total>0?'🎉 Crushed it!':'Good morning,'}</h1>
-        <h1 class="fd" style="font-size:27px;font-weight:800;color:var(--accent);line-height:1.15">Alex</h1>
+        <h1 class="fd" style="font-size:27px;font-weight:800;color:var(--accent);line-height:1.15">${displayName}</h1>
       </div>
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
-        <div style="width:44px;height:44px;border-radius:14px;background:linear-gradient(135deg,#7c3aed,#9d5cff);display:flex;align-items:center;justify-content:center;font-family:var(--font-d);font-weight:800;font-size:18px;color:#fff">A</div>
+        <div style="width:44px;height:44px;border-radius:14px;background:linear-gradient(135deg,#7c3aed,#9d5cff);display:flex;align-items:center;justify-content:center;font-family:var(--font-d);font-weight:800;font-size:18px;color:#fff">${initial}</div>
         <span class="fm" style="font-size:11px;color:var(--dim)">${S.totalXP} XP</span>
+        <button id="premium-header-btn" class="pill" style="${premiumBtnStyle}">⚡ Premium</button>
       </div>
     </div>
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
@@ -247,6 +312,7 @@ function renderHeader(){
         <div style="font-size:11px;color:var(--dim)">best</div>
       </div>
     </div>`;
+  $('premium-header-btn').addEventListener('click', openPremiumModal);
 }
 
 function renderToday(){
@@ -276,7 +342,20 @@ function renderToday(){
       </div>
     </div>`;
   });
-  html+='<button id="add-btn"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 3v12M3 9h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>Add New Habit</button>';
+  const atLimit = !S.isPremium && S.habits.length >= FREE_HABIT_LIMIT;
+  if (atLimit) {
+    html += `<div class="card" style="text-align:center;padding:22px 16px;border-color:var(--primary)">
+      <div style="font-size:28px;margin-bottom:6px">🔒</div>
+      <div class="fd" style="font-weight:700;font-size:15px;margin-bottom:4px">You've hit the free limit</div>
+      <p style="font-size:12px;color:var(--dim);margin-bottom:14px;line-height:1.5">Free plan includes ${FREE_HABIT_LIMIT} habits. Go Premium for unlimited habits + Leagues.</p>
+      <button class="btn-primary" id="add-btn-locked" style="width:auto;padding:10px 24px">⚡ Go Premium</button>
+    </div>`;
+  } else {
+    if (!S.isPremium) {
+      html += `<p class="fm" style="font-size:11px;color:var(--dim);text-align:center;margin:-4px 0 10px">${S.habits.length}/${FREE_HABIT_LIMIT} free habits used</p>`;
+    }
+    html += '<button id="add-btn"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 3v12M3 9h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>Add New Habit</button>';
+  }
   $('main').innerHTML=html; $('main').className='fade-in';
   $('main').querySelectorAll('.day-btn').forEach(b=>b.addEventListener('click',()=>{S.selectedDay=b.dataset.day;save();renderToday();}));
   $('main').querySelectorAll('.habit-row').forEach(row=>row.addEventListener('click',e=>{
@@ -286,7 +365,11 @@ function renderToday(){
     else S.totalXP=Math.max(0,S.totalXP-h.xp);
     save();renderHeader();renderToday();
   }));
-  $('add-btn').addEventListener('click',openModal);
+  if (atLimit) {
+    $('add-btn-locked').addEventListener('click', openPremiumModal);
+  } else {
+    $('add-btn').addEventListener('click',openModal);
+  }
 }
 
 function renderStats(){
@@ -358,26 +441,47 @@ function renderJournal(){
 }
 
 function renderBadges(){
+  const youName = (S.userName || 'You') + ' (You)';
+  const leagueRows = [{name:'Jordan M.',xp:312,streak:22,you:false},{name:youName,xp:287,streak:15,you:true},{name:'Sam T.',xp:241,streak:11,you:false},{name:'Riley K.',xp:198,streak:8,you:false},{name:'Morgan L.',xp:145,streak:5,you:false}].map((p,i)=>`
+        <div class="lb-row">
+          <span class="fm" style="width:22px;text-align:center;color:${i===0?'var(--amber)':'var(--dim)'}">${i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1}</span>
+          <span style="flex:1;font-size:14px;font-weight:500;color:${p.you?'var(--accent)':'var(--fg)'}">${p.name}</span>
+          <span class="fm" style="font-size:12px;color:var(--amber);margin-right:8px">🔥${p.streak}</span>
+          <span class="fm" style="font-size:12px;color:var(--dim)">${p.xp}xp</span>
+        </div>`).join('');
+
+  const leagueSection = S.isPremium
+    ? `<div class="card" style="margin-top:16px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <span class="fd" style="font-weight:600;font-size:14px">Weekly League</span>
+          <span class="pill fm" style="background:rgba(124,58,237,.15);color:#a78bfa">Public</span>
+        </div>
+        ${leagueRows}
+      </div>`
+    : `<div class="card" style="margin-top:16px;position:relative;overflow:hidden;padding-bottom:26px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <span class="fd" style="font-weight:600;font-size:14px">Weekly League</span>
+          <span class="pill fm" style="background:rgba(124,58,237,.15);color:#a78bfa">Public</span>
+        </div>
+        <div style="filter:blur(4px);opacity:.5;pointer-events:none;user-select:none">${leagueRows}</div>
+        <div style="position:absolute;left:0;right:0;bottom:0;top:52px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;background:linear-gradient(180deg,transparent,var(--card) 55%);padding:0 16px">
+          <div style="font-size:24px">🔒</div>
+          <div class="fd" style="font-weight:700;font-size:14px">Unlock Leagues</div>
+          <p style="font-size:11px;color:var(--dim);text-align:center;max-width:220px;line-height:1.4">See exactly where you rank against everyone else, live.</p>
+          <button class="btn-primary" id="unlock-league-btn" style="width:auto;padding:8px 20px;font-size:13px;margin-top:2px">⚡ Go Premium</button>
+        </div>
+      </div>`;
+
   $('main').innerHTML=`
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
       <span class="fd" style="font-weight:800;font-size:18px">Achievements</span>
       <span class="pill fm" style="background:var(--muted2);color:var(--accent)">${S.earnedBadges.length}/${BADGES.length}</span>
     </div>
     <div id="badge-grid">${BADGES.map(b=>{const e=S.earnedBadges.includes(b.id);return`<div class="badge-card ${e?'earned':'locked'}"><div style="font-size:34px">${b.icon}</div><div><div class="fd" style="font-weight:600;font-size:13px">${b.name}</div><div style="font-size:11px;color:var(--dim);margin-top:2px">${b.desc}</div></div><span class="pill" style="${e?'background:rgba(163,230,53,.14);color:var(--accent)':'color:var(--dim)'}">${e?'Earned ✓':'Locked'}</span></div>`;}).join('')}</div>
-    <div class="card" style="margin-top:16px">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-        <span class="fd" style="font-weight:600;font-size:14px">Weekly League</span>
-        <span class="pill fm" style="background:rgba(124,58,237,.15);color:#a78bfa">Public</span>
-      </div>
-      ${[{name:'Jordan M.',xp:312,streak:22,you:false},{name:'Alex (You)',xp:287,streak:15,you:true},{name:'Sam T.',xp:241,streak:11,you:false},{name:'Riley K.',xp:198,streak:8,you:false},{name:'Morgan L.',xp:145,streak:5,you:false}].map((p,i)=>`
-        <div class="lb-row">
-          <span class="fm" style="width:22px;text-align:center;color:${i===0?'var(--amber)':'var(--dim)'}">${i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1}</span>
-          <span style="flex:1;font-size:14px;font-weight:500;color:${p.you?'var(--accent)':'var(--fg)'}">${p.name}</span>
-          <span class="fm" style="font-size:12px;color:var(--amber);margin-right:8px">🔥${p.streak}</span>
-          <span class="fm" style="font-size:12px;color:var(--dim)">${p.xp}xp</span>
-        </div>`).join('')}
-    </div>`;
+    ${leagueSection}`;
   $('main').className='fade-in';
+  const unlockBtn = $('unlock-league-btn');
+  if (unlockBtn) unlockBtn.addEventListener('click', openPremiumModal);
 }
 
 function checkBadges(){
@@ -409,6 +513,9 @@ $('modal-close').addEventListener('click',closeModal);
 $('modal-overlay').addEventListener('click',e=>{if(e.target===$('modal-overlay'))closeModal();});
 $('create-habit-btn').addEventListener('click',()=>{
   const name=$('habit-name-input').value.trim(); if(!name)return;
+  if(!S.isPremium && S.habits.length>=FREE_HABIT_LIMIT){
+    closeModal(); toast('🔒 Free plan limit reached'); openPremiumModal(); return;
+  }
   S.habits.push({id:Date.now().toString(),name,icon:newIcon,color:newColor,streak:0,xp:10,freq:'Daily',done:false,dates:[]});
   save();closeModal();toast('✅ "'+name+'" habit created!');renderHeader();renderToday();
 });
@@ -423,8 +530,83 @@ document.querySelectorAll('.tab-btn').forEach(btn=>btn.addEventListener('click',
   else if(currentTab==='badges')renderBadges();
 }));
 
+/* ---------- Name capture (mandatory on first run) ---------- */
+function openNameModal(){$('name-modal-overlay').classList.add('open');setTimeout(()=>$('name-input').focus(),360);}
+function closeNameModal(){$('name-modal-overlay').classList.remove('open');}
+$('name-save-btn').addEventListener('click',()=>{
+  const n=$('name-input').value.trim();
+  if(!n)return;
+  S.userName=n; save(); closeNameModal(); renderHeader();
+  if(currentTab==='badges')renderBadges();
+});
+$('name-input').addEventListener('keydown',e=>{if(e.key==='Enter')$('name-save-btn').click();});
+
+/* ---------- Premium ---------- */
+/*
+  No backend here (unlike the other version of this app), so redeem codes
+  are just a hardcoded list you edit by hand after each sale. Add a code
+  to VALID_CODES, send it to the buyer, then remove it once they've used
+  it (there's no automatic "used" tracking without a server).
+*/
+const STRIPE_MONTHLY_LINK = "https://buy.stripe.com/REPLACE_WITH_YOUR_MONTHLY_LINK";
+const STRIPE_ONCE_LINK = "https://buy.stripe.com/REPLACE_WITH_YOUR_ONE_TIME_LINK";
+const VALID_CODES = ["HF-DEMO1"];
+const FREE_HABIT_LIMIT = 3;
+const CURRENCY_RATES = {
+  GBP:{s:'£',r:1}, USD:{s:'$',r:1.27}, EUR:{s:'€',r:1.17}, CAD:{s:'CA$',r:1.72}, AUD:{s:'AU$',r:1.93}
+};
+const PRICE_GBP = { monthly: 3.99, once: 20 };
+
+function detectCurrency(){
+  const loc = navigator.language || 'en-GB';
+  if(loc.endsWith('-US')) return 'USD';
+  if(loc.endsWith('-GB')) return 'GBP';
+  if(loc.endsWith('-CA')) return 'CAD';
+  if(loc.endsWith('-AU')) return 'AUD';
+  const euro=['de','fr','es','it','nl','pt','ie','fi','el','at','be','pl'];
+  if(euro.includes(loc.split('-')[0])) return 'EUR';
+  return 'USD';
+}
+function fmtPrice(gbp){
+  const c = CURRENCY_RATES[detectCurrency()] || CURRENCY_RATES.USD;
+  const v = gbp * c.r;
+  return c.s + (v < 10 ? v.toFixed(2) : Math.round(v));
+}
+
+function renderPremiumModal(){
+  $('premium-status-text').textContent = S.isPremium ? "You're Premium ✨ — thank you!" : "You're on the Free plan";
+  $('premium-features').innerHTML = `
+    <div style="font-size:13px;line-height:2;color:var(--fg)">
+      <div>✓ Unlimited habits — stop hitting the wall</div>
+      <div>✓ Leagues — race your streaks against friends</div>
+      <div>✓ Journal — reflect on any habit, no limits</div>
+    </div>`;
+  $('price-monthly').textContent = fmtPrice(PRICE_GBP.monthly);
+  $('price-once').textContent = fmtPrice(PRICE_GBP.once);
+  const mBtn = $('buy-monthly-btn'), oBtn = $('buy-once-btn');
+  mBtn.href = STRIPE_MONTHLY_LINK; oBtn.href = STRIPE_ONCE_LINK;
+  mBtn.style.display = S.isPremium ? 'none' : 'block';
+  oBtn.style.display = S.isPremium ? 'none' : 'block';
+}
+function openPremiumModal(){ renderPremiumModal(); $('premium-modal-overlay').classList.add('open'); }
+function closePremiumModal(){ $('premium-modal-overlay').classList.remove('open'); }
+$('premium-modal-close').addEventListener('click', closePremiumModal);
+$('premium-modal-overlay').addEventListener('click', e=>{ if(e.target===$('premium-modal-overlay')) closePremiumModal(); });
+$('redeem-code-btn').addEventListener('click', ()=>{
+  const code = $('redeem-code-input').value.trim().toUpperCase();
+  if(!code) return;
+  if(VALID_CODES.includes(code)){
+    S.isPremium = true; save(); renderPremiumModal();
+    $('redeem-code-input').value = '';
+    toast('⚡ Premium unlocked!');
+  } else {
+    toast('That code is not valid.');
+  }
+});
+
 renderHeader();
 renderToday();
+if(!S.userName){ openNameModal(); }
 </script>
 </body>
 </html>
