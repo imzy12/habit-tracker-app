@@ -93,12 +93,12 @@ main{flex:1;overflow-y:auto;padding:0 20px 40px}
 #premium-modal-sheet,#settings-modal-sheet{width:100%;max-width:480px;margin:0 auto;background:var(--card);border:1px solid var(--border);border-radius:24px 24px 0 0;padding:24px;max-height:85vh;overflow-y:auto;transform:translateY(100%);transition:transform .35s cubic-bezier(.34,1.56,.64,1)}
 #premium-modal-overlay.open #premium-modal-sheet,#settings-modal-overlay.open #settings-modal-sheet{transform:translateY(0)}
 
-.icon-grid{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
-.icon-opt{width:40px;height:40px;border-radius:12px;font-size:20px;display:flex;align-items:center;justify-content:center;background:var(--muted);cursor:pointer;border:none;transition:all .15s}
-.icon-opt.sel{background:var(--primary);transform:scale(1.15)}
-.color-grid{display:flex;gap:8px;margin-bottom:20px}
-.color-dot{width:30px;height:30px;border-radius:50%;cursor:pointer;border:none;transition:all .15s;flex-shrink:0}
-.color-dot.sel{transform:scale(1.3)}
+.icon-grid{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:16px}
+.icon-opt{width:46px;height:46px;border-radius:14px;font-size:22px;display:flex;align-items:center;justify-content:center;background:var(--muted);cursor:pointer;border:none;transition:all .15s}
+.icon-opt.sel{background:var(--primary);transform:scale(1.15);box-shadow:0 4px 14px -4px var(--primary)}
+.color-grid{display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap}
+.color-dot{width:34px;height:34px;border-radius:50%;cursor:pointer;border:none;transition:all .15s;flex-shrink:0}
+.color-dot.sel{transform:scale(1.3);box-shadow:0 4px 14px -4px rgba(0,0,0,.5)}
 
 .btn-primary{width:100%;padding:14px 0;border-radius:14px;font-weight:700;font-size:15px;background:var(--primary);color:#fff;border:none;cursor:pointer;transition:opacity .2s}
 .btn-primary:hover{opacity:.88}
@@ -192,6 +192,17 @@ main{flex:1;overflow-y:auto;padding:0 20px 40px}
       <button id="modal-close" style="width:32px;height:32px;border-radius:12px;font-size:16px;color:var(--dim);display:flex;align-items:center;justify-content:center">✕</button>
     </div>
     <input id="habit-name-input" class="text-input" type="text" placeholder="Habit name..."/>
+
+    <div class="section-lbl">PREVIEW</div>
+    <div class="habit-row" id="habit-preview-row" style="cursor:default;margin-bottom:20px">
+      <div class="habit-icon" id="habit-preview-icon"></div>
+      <div style="flex:1;min-width:0">
+        <span class="fd" id="habit-preview-name" style="font-weight:600;font-size:15px">Your habit</span>
+        <div style="margin-top:4px"><span class="fm" style="font-size:11px;color:var(--dim)">Daily</span></div>
+      </div>
+      <div class="habit-check"></div>
+    </div>
+
     <div class="section-lbl">ICON</div>
     <div class="icon-grid" id="icon-picker"></div>
     <div class="section-lbl">COLOR</div>
@@ -745,16 +756,24 @@ function checkBadges(){
 
 function openModal(){
   newIcon=ICONS[0];newColor=COLORS[0];$('habit-name-input').value='';
-  renderPickers();$('modal-overlay').classList.add('open');
+  renderPickers();updateHabitPreview();$('modal-overlay').classList.add('open');
   setTimeout(()=>$('habit-name-input').focus(),360);
 }
 function closeModal(){$('modal-overlay').classList.remove('open');}
+function updateHabitPreview(){
+  const name=$('habit-name-input').value.trim();
+  $('habit-preview-name').textContent = name || 'Your habit';
+  $('habit-preview-icon').textContent = newIcon;
+  $('habit-preview-icon').style.background = newColor+'22';
+  $('habit-preview-icon').style.border = '1.5px solid '+newColor+'44';
+}
 function renderPickers(){
   $('icon-picker').innerHTML=ICONS.map(ic=>`<button class="icon-opt${ic===newIcon?' sel':''}" data-icon="${ic}">${ic}</button>`).join('');
-  $('icon-picker').querySelectorAll('.icon-opt').forEach(b=>b.addEventListener('click',()=>{newIcon=b.dataset.icon;renderPickers();}));
+  $('icon-picker').querySelectorAll('.icon-opt').forEach(b=>b.addEventListener('click',()=>{haptic(8);pop(b);newIcon=b.dataset.icon;renderPickers();updateHabitPreview();}));
   $('color-picker').innerHTML=COLORS.map(c=>`<button class="color-dot${c===newColor?' sel':''}" data-color="${c}" style="background:${c};${c===newColor?'outline:2.5px solid '+c+';outline-offset:3px':''}"></button>`).join('');
-  $('color-picker').querySelectorAll('.color-dot').forEach(b=>b.addEventListener('click',()=>{newColor=b.dataset.color;renderPickers();}));
+  $('color-picker').querySelectorAll('.color-dot').forEach(b=>b.addEventListener('click',()=>{haptic(8);pop(b);newColor=b.dataset.color;renderPickers();updateHabitPreview();}));
 }
+$('habit-name-input').addEventListener('input',updateHabitPreview);
 $('modal-close').addEventListener('click',closeModal);
 $('modal-overlay').addEventListener('click',e=>{if(e.target===$('modal-overlay'))closeModal();});
 $('create-habit-btn').addEventListener('click',()=>{
