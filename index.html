@@ -377,6 +377,16 @@ if (S.isPremium === undefined) S.isPremium = false;
 if (S.referralSource === undefined) S.referralSource = '';
 if (!S.completionLog) S.completionLog = {};
 S.habits.forEach(h => { if (!h.dates) h.dates = []; });
+
+/* One-time cleanup: the very first version of this app shipped with 5 preset
+   habits (ids '1'-'5'). Anyone who opened the app back then still has them
+   saved in localStorage. Real habits always get a Date.now()-based id, which
+   never matches these, so this only ever removes the old presets. */
+const OLD_DEFAULT_IDS = ['1','2','3','4','5'];
+if (S.habits.some(h => OLD_DEFAULT_IDS.includes(h.id))) {
+  S.habits = S.habits.filter(h => !OLD_DEFAULT_IDS.includes(h.id));
+  save();
+}
 const $=id=>document.getElementById(id);
 const level=xp=>Math.floor(xp/100)+1;
 const xpMod=xp=>xp%100;
@@ -596,6 +606,18 @@ function renderToday(){
     </div>`;
   });
 
+  if (S.habits.length > 0) {
+    if (atLimit) {
+      html += `<div class="card" style="text-align:center;padding:20px 16px;border-color:var(--primary);margin-top:6px">
+        <div style="font-size:24px;margin-bottom:4px">🔒</div>
+        <div class="fd" style="font-weight:700;font-size:14px;margin-bottom:10px">Free plan limit reached</div>
+        <button class="btn-primary" id="add-btn-locked-bottom" style="width:auto;padding:9px 22px;font-size:13px">⚡ Go Premium</button>
+      </div>`;
+    } else {
+      html += '<button id="add-btn-bottom" style="margin-top:6px"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 3v12M3 9h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>Add Habit</button>';
+    }
+  }
+
   $('main').innerHTML=html; $('main').className='fade-in';
   $('main').querySelectorAll('.day-btn').forEach(b=>b.addEventListener('click',()=>{haptic(8);pop(b);S.selectedDay=b.dataset.day;save();renderToday();}));
   $('main').querySelectorAll('.habit-row').forEach(row=>row.addEventListener('click',e=>{
@@ -630,8 +652,12 @@ function renderToday(){
   }));
   if (atLimit) {
     $('add-btn-locked').addEventListener('click', openPremiumModal);
+    const lockedBottom = $('add-btn-locked-bottom');
+    if (lockedBottom) lockedBottom.addEventListener('click', openPremiumModal);
   } else {
     $('add-btn').addEventListener('click',()=>{haptic(10);openModal();});
+    const addBottom = $('add-btn-bottom');
+    if (addBottom) addBottom.addEventListener('click',()=>{haptic(10);openModal();});
   }
 }
 
