@@ -7,6 +7,9 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet"/>
+<!-- Needed for Private Leagues (free Firebase Firestore) — see the comment above the Leagues section in the script -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -266,35 +269,72 @@ main{flex:1;overflow-y:auto;padding:0 20px 40px}
     <div style="display:flex;justify-content:flex-end;margin-bottom:4px">
       <button id="premium-modal-close" style="width:32px;height:32px;border-radius:12px;font-size:16px;color:var(--dim);display:flex;align-items:center;justify-content:center">✕</button>
     </div>
-    <div style="text-align:center;margin-bottom:20px">
-      <div style="font-size:34px">⚡</div>
-      <div class="fd" style="font-weight:800;font-size:20px;margin:10px 0 6px">Unlock Total Friction Control</div>
+    <div style="text-align:center;margin-bottom:18px">
+      <div style="display:flex;justify-content:center;gap:14px;font-size:24px;margin-bottom:10px">
+        <span>♾️</span><span>🏆</span><span>📓</span><span>⚡</span>
+      </div>
+      <div class="fd" style="font-weight:800;font-size:20px;margin:6px 0 6px">Unlock Total Friction Control</div>
       <p style="font-size:13px;color:var(--dim);line-height:1.5;margin-bottom:8px">Break the loops holding you back. Reclaim your focus.</p>
       <p id="premium-status-text" class="fm" style="font-size:12px;color:var(--dim)"></p>
     </div>
-    <div class="section-lbl">WHAT YOU GET</div>
-    <div id="premium-features" style="margin-bottom:18px"></div>
-    <div class="section-lbl">CHOOSE A PLAN</div>
-    <div style="display:flex;gap:10px;margin-bottom:8px">
-      <div class="card" style="flex:1;text-align:center;padding:14px 10px">
-        <div style="font-size:11px;color:var(--dim);font-weight:600;margin-bottom:4px">Monthly</div>
-        <div class="fd" id="price-monthly" style="font-weight:800;font-size:20px"></div>
-        <div style="font-size:10px;color:var(--dim);margin-bottom:10px">per month</div>
-        <a id="buy-monthly-btn" class="btn-primary" style="display:block;text-decoration:none;font-size:13px;padding:10px 0" href="#" target="_blank" rel="noopener">Subscribe</a>
+
+    <div class="section-lbl">GOING PREMIUM UNLOCKS EVERYTHING</div>
+    <div id="premium-features" style="margin-bottom:6px"></div>
+    <p style="font-size:12px;color:var(--dim);line-height:1.5;margin-bottom:18px">One purchase, every feature, no upsells hiding behind another paywall — the way it should be.</p>
+
+    <div class="section-lbl">CHOOSE A PLAN · FREE 3-DAY TRIAL</div>
+    <div class="card" style="margin-bottom:10px;padding:14px 16px">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div class="fd" style="font-weight:700;font-size:15px">Monthly</div>
+          <div style="font-size:11px;color:var(--dim)">Cancel anytime</div>
+        </div>
+        <div style="text-align:right">
+          <div class="fd" id="price-monthly" style="font-weight:800;font-size:18px"></div>
+          <div style="font-size:10px;color:var(--dim)">per month</div>
+        </div>
       </div>
-      <div class="card" style="flex:1;text-align:center;padding:14px 10px;border-color:var(--accent);position:relative">
-        <div class="pill" style="position:absolute;top:-10px;left:50%;transform:translateX(-50%);background:var(--accent);color:#0a1200;white-space:nowrap">Best value</div>
-        <div style="font-size:11px;color:var(--dim);font-weight:600;margin-bottom:4px;margin-top:4px">One-time</div>
-        <div class="fd" id="price-once" style="font-weight:800;font-size:20px"></div>
-        <div style="font-size:10px;color:var(--dim);margin-bottom:10px">unlock forever</div>
-        <a id="buy-once-btn" class="btn-primary" style="display:block;text-decoration:none;font-size:13px;padding:10px 0" href="#" target="_blank" rel="noopener">Buy once</a>
-      </div>
+      <a id="buy-monthly-btn" class="btn-primary" style="display:block;text-decoration:none;font-size:13px;padding:10px 0;margin-top:12px" href="#" target="_blank" rel="noopener">Start Free Trial</a>
     </div>
-    <p style="font-size:10px;color:var(--dim);text-align:center;margin-bottom:16px">Prices shown in your local currency (estimate). Exact amount confirmed at checkout.</p>
+    <div class="card" style="margin-bottom:10px;padding:14px 16px;border-color:var(--primary2)">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div class="fd" style="font-weight:700;font-size:15px">Annual</div>
+          <div style="font-size:11px;color:var(--dim)">Just <span id="price-annual-monthly-equiv"></span>/mo</div>
+        </div>
+        <div style="text-align:right">
+          <div class="fd" id="price-annual" style="font-weight:800;font-size:18px"></div>
+          <div style="font-size:10px;color:var(--dim)">per year</div>
+        </div>
+      </div>
+      <a id="buy-annual-btn" class="btn-primary" style="display:block;text-decoration:none;font-size:13px;padding:10px 0;margin-top:12px" href="#" target="_blank" rel="noopener">Start Free Trial</a>
+    </div>
+    <div class="card" style="margin-bottom:8px;padding:14px 16px;border-color:var(--accent);position:relative">
+      <div class="pill" style="position:absolute;top:-10px;left:50%;transform:translateX(-50%);background:var(--accent);color:#0a1200;white-space:nowrap">⚡ Special Offer</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px">
+        <div>
+          <div class="fd" style="font-weight:700;font-size:15px">Lifetime</div>
+          <div style="font-size:11px;color:var(--dim)">Pay once, own it forever</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:12px;color:var(--dim);text-decoration:line-through" id="price-lifetime-was"></div>
+          <div class="fd" id="price-lifetime-now" style="font-weight:800;font-size:20px;color:var(--accent)"></div>
+        </div>
+      </div>
+      <a id="buy-lifetime-btn" class="btn-primary" style="display:block;text-decoration:none;font-size:13px;padding:10px 0;margin-top:12px;background:var(--accent);color:#0a1200" href="#" target="_blank" rel="noopener">Claim Lifetime Deal</a>
+    </div>
+    <p style="font-size:10px;color:var(--dim);text-align:center;margin-bottom:18px">Prices shown in your local currency (estimate). Exact amount and trial terms confirmed at checkout.</p>
+
     <div class="section-lbl">ALREADY PAID?</div>
-    <div style="display:flex;gap:8px">
+    <div style="display:flex;gap:8px;margin-bottom:20px">
       <input id="redeem-code-input" class="text-input" style="margin-bottom:0" type="text" placeholder="Enter your code"/>
       <button id="redeem-code-btn" class="btn-primary" style="width:auto;padding:0 18px">Unlock</button>
+    </div>
+
+    <div class="card" style="text-align:center;background:var(--muted)">
+      <div style="font-size:20px;margin-bottom:6px">🧑‍💻</div>
+      <div class="fd" style="font-weight:700;font-size:13px;margin-bottom:4px">Built by a solo developer</div>
+      <p style="font-size:12px;color:var(--dim);line-height:1.5">No investors, no ad tracking — just one person building the app they wanted to exist. Going Premium keeps it that way.</p>
     </div>
   </div>
 </div>
@@ -302,7 +342,7 @@ main{flex:1;overflow-y:auto;padding:0 20px 40px}
 <div id="settings-modal-overlay">
   <div id="settings-modal-sheet">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
-      <span class="fd" style="font-weight:700;font-size:20px">Settings</span>
+      <span class="fd" id="settings-title-text" style="font-weight:700;font-size:20px">Settings</span>
       <button id="settings-modal-close" style="width:32px;height:32px;border-radius:12px;font-size:16px;color:var(--dim);display:flex;align-items:center;justify-content:center">✕</button>
     </div>
 
@@ -312,9 +352,13 @@ main{flex:1;overflow-y:auto;padding:0 20px 40px}
         <span style="font-size:13px;color:var(--dim)">Version</span>
         <span class="fm" style="font-size:13px">1.0.0</span>
       </div>
-      <div style="display:flex;justify-content:space-between;padding:8px 0">
+      <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
         <span style="font-size:13px;color:var(--dim)">Plan</span>
         <span class="fm" id="settings-plan-text" style="font-size:13px;color:var(--accent)">Free</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0">
+        <span id="settings-language-label" style="font-size:13px;color:var(--dim)">Language</span>
+        <select id="language-select" class="fm" style="background:var(--muted);color:var(--fg);border:1px solid var(--border);border-radius:8px;font-size:12px;padding:5px 8px"></select>
       </div>
     </div>
 
@@ -365,7 +409,7 @@ function loadState() {
     habits: [],
     totalXP:0, journalEntries:[], earnedBadges:[],
     selectedDay:todayStr, mood:4,
-    userName:'', isPremium:false, completionLog:{},
+    userName:'', isPremium:false, completionLog:{}, leagueCode:'',
   };
 }
 function save(){ localStorage.setItem('hf_v2',JSON.stringify(S)); }
@@ -376,6 +420,8 @@ if (S.userName === undefined) S.userName = '';
 if (S.isPremium === undefined) S.isPremium = false;
 if (S.referralSource === undefined) S.referralSource = '';
 if (!S.completionLog) S.completionLog = {};
+if (S.leagueCode === undefined) S.leagueCode = '';
+if (!S.language) S.language = 'en';
 S.habits.forEach(h => { if (!h.dates) h.dates = []; });
 
 /* One-time cleanup: the very first version of this app shipped with 5 preset
@@ -518,13 +564,13 @@ function renderHeader(){
     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px">
       <div>
         <p class="fm" style="font-size:12px;color:var(--dim);margin-bottom:3px">${today.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'})}</p>
-        <h1 class="fd" style="font-size:27px;font-weight:800;line-height:1.15">${done===total&&total>0?'🎉 Crushed it!':'Good morning,'}</h1>
+        <h1 class="fd" style="font-size:27px;font-weight:800;line-height:1.15">${done===total&&total>0?t('crushed'):t('greeting')}</h1>
         <h1 class="fd" style="font-size:27px;font-weight:800;color:var(--accent);line-height:1.15">${displayName}</h1>
       </div>
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
         <button id="avatar-settings-btn" style="width:44px;height:44px;border-radius:14px;background:linear-gradient(135deg,#7c3aed,#9d5cff);display:flex;align-items:center;justify-content:center;font-family:var(--font-d);font-weight:800;font-size:18px;color:#fff;cursor:pointer">${initial}</button>
         <span class="fm" style="font-size:11px;color:var(--dim)">${S.totalXP} XP</span>
-        <button id="premium-header-btn" class="pill" style="${premiumBtnStyle}">⚡ Premium</button>
+        <button id="premium-header-btn" class="pill" style="${premiumBtnStyle}">${t('goPremium')}</button>
       </div>
     </div>
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
@@ -572,7 +618,7 @@ function renderToday(){
       <button class="btn-primary" id="add-btn-locked" style="width:auto;padding:10px 24px">⚡ Go Premium</button>
     </div>`;
   } else {
-    html += '<button id="add-btn" style="margin-bottom:14px"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 3v12M3 9h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>Add New Habit</button>';
+    html += '<button id="add-btn" style="margin-bottom:14px"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 3v12M3 9h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>'+t('addHabit')+'</button>';
     if (!S.isPremium) {
       html += `<p class="fm" style="font-size:11px;color:var(--dim);text-align:center;margin:-6px 0 14px">${S.habits.length}/${FREE_HABIT_LIMIT} free habits used</p>`;
     }
@@ -649,6 +695,7 @@ function renderToday(){
     }
     save();renderHeader();renderToday();
     pulseXPBar();
+    syncPlayerToFirebase();
   }));
   if (atLimit) {
     $('add-btn-locked').addEventListener('click', openPremiumModal);
@@ -747,47 +794,21 @@ function renderJournal(){
 }
 
 function renderBadges(){
-  const youName = (S.userName || 'You') + ' (You)';
-  const leagueRows = [{name:'Jordan M.',xp:312,streak:22,you:false},{name:youName,xp:287,streak:15,you:true},{name:'Sam T.',xp:241,streak:11,you:false},{name:'Riley K.',xp:198,streak:8,you:false},{name:'Morgan L.',xp:145,streak:5,you:false}].map((p,i)=>`
-        <div class="lb-row">
-          <span class="fm" style="width:22px;text-align:center;color:${i===0?'var(--amber)':'var(--dim)'}">${i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1}</span>
-          <span style="flex:1;font-size:14px;font-weight:500;color:${p.you?'var(--accent)':'var(--fg)'}">${p.name}</span>
-          <span class="fm" style="font-size:12px;color:var(--amber);margin-right:8px">🔥${p.streak}</span>
-          <span class="fm" style="font-size:12px;color:var(--dim)">${p.xp}xp</span>
-        </div>`).join('');
-
-  const leagueSection = S.isPremium
-    ? `<div class="card" style="margin-top:16px">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-          <span class="fd" style="font-weight:600;font-size:14px">Weekly League</span>
-          <span class="pill fm" style="background:rgba(124,58,237,.15);color:#a78bfa">Public</span>
-        </div>
-        ${leagueRows}
-      </div>`
-    : `<div class="card" style="margin-top:16px;position:relative;overflow:hidden;padding-bottom:26px">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-          <span class="fd" style="font-weight:600;font-size:14px">Weekly League</span>
-          <span class="pill fm" style="background:rgba(124,58,237,.15);color:#a78bfa">Public</span>
-        </div>
-        <div style="filter:blur(4px);opacity:.5;pointer-events:none;user-select:none">${leagueRows}</div>
-        <div style="position:absolute;left:0;right:0;bottom:0;top:52px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;background:linear-gradient(180deg,transparent,var(--card) 55%);padding:0 16px">
-          <div style="font-size:24px">🔒</div>
-          <div class="fd" style="font-weight:700;font-size:14px">Unlock Leagues</div>
-          <p style="font-size:11px;color:var(--dim);text-align:center;max-width:220px;line-height:1.4">See exactly where you rank against everyone else, live.</p>
-          <button class="btn-primary" id="unlock-league-btn" style="width:auto;padding:8px 20px;font-size:13px;margin-top:2px">⚡ Go Premium</button>
-        </div>
-      </div>`;
-
   $('main').innerHTML=`
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
       <span class="fd" style="font-weight:800;font-size:18px">Achievements</span>
       <span class="pill fm" style="background:var(--muted2);color:var(--accent)">${S.earnedBadges.length}/${BADGES.length}</span>
     </div>
     <div id="badge-grid">${BADGES.map(b=>{const e=S.earnedBadges.includes(b.id);return`<div class="badge-card ${e?'earned':'locked'}"><div style="font-size:34px">${b.icon}</div><div><div class="fd" style="font-weight:600;font-size:13px">${b.name}</div><div style="font-size:11px;color:var(--dim);margin-top:2px">${b.desc}</div></div><span class="pill" style="${e?'background:rgba(163,230,53,.14);color:var(--accent)':'color:var(--dim)'}">${e?'Earned ✓':'Locked'}</span></div>`;}).join('')}</div>
-    ${leagueSection}`;
+    <div class="card" style="margin-top:16px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <span class="fd" style="font-weight:600;font-size:14px">Private Leagues</span>
+        <span class="pill fm" style="background:rgba(124,58,237,.15);color:#a78bfa">Friends</span>
+      </div>
+      <div id="leagues-content"><p style="font-size:12px;color:var(--dim)">Loading…</p></div>
+    </div>`;
   $('main').className='fade-in';
-  const unlockBtn = $('unlock-league-btn');
-  if (unlockBtn) unlockBtn.addEventListener('click', openPremiumModal);
+  renderLeaguesSection();
 }
 
 function checkBadges(){
@@ -962,13 +983,14 @@ window.addEventListener('load', ()=>{
   it (there's no automatic "used" tracking without a server).
 */
 const STRIPE_MONTHLY_LINK = "https://buy.stripe.com/REPLACE_WITH_YOUR_MONTHLY_LINK";
-const STRIPE_ONCE_LINK = "https://buy.stripe.com/REPLACE_WITH_YOUR_ONE_TIME_LINK";
+const STRIPE_ANNUAL_LINK = "https://buy.stripe.com/REPLACE_WITH_YOUR_ANNUAL_LINK";
+const STRIPE_LIFETIME_LINK = "https://buy.stripe.com/REPLACE_WITH_YOUR_LIFETIME_LINK";
 const VALID_CODES = ["HF-DEMO1"];
 const FREE_HABIT_LIMIT = 3;
 const CURRENCY_RATES = {
   GBP:{s:'£',r:1}, USD:{s:'$',r:1.27}, EUR:{s:'€',r:1.17}, CAD:{s:'CA$',r:1.72}, AUD:{s:'AU$',r:1.93}
 };
-const PRICE_GBP = { monthly: 3.99, once: 20 };
+const PRICE_GBP = { monthly: 4.99, annual: 29.99, lifetimeWas: 59.99, lifetimeNow: 49.99 };
 
 function detectCurrency(){
   const loc = navigator.language || 'en-GB';
@@ -983,7 +1005,7 @@ function detectCurrency(){
 function fmtPrice(gbp){
   const c = CURRENCY_RATES[detectCurrency()] || CURRENCY_RATES.USD;
   const v = gbp * c.r;
-  return c.s + (v < 10 ? v.toFixed(2) : Math.round(v));
+  return c.s + (v < 10 ? v.toFixed(2) : v.toFixed(2).replace(/\.00$/,''));
 }
 
 function renderPremiumModal(){
@@ -991,15 +1013,18 @@ function renderPremiumModal(){
   $('premium-features').innerHTML = `
     <div style="font-size:13px;line-height:2;color:var(--fg)">
       <div>✓ Unlimited habits — stop hitting the wall</div>
-      <div>✓ Leagues — race your streaks against friends</div>
+      <div>✓ Private Leagues — race your streaks against friends</div>
       <div>✓ Journal — reflect on any habit, no limits</div>
     </div>`;
   $('price-monthly').textContent = fmtPrice(PRICE_GBP.monthly);
-  $('price-once').textContent = fmtPrice(PRICE_GBP.once);
-  const mBtn = $('buy-monthly-btn'), oBtn = $('buy-once-btn');
-  mBtn.href = STRIPE_MONTHLY_LINK; oBtn.href = STRIPE_ONCE_LINK;
-  mBtn.style.display = S.isPremium ? 'none' : 'block';
-  oBtn.style.display = S.isPremium ? 'none' : 'block';
+  $('price-annual').textContent = fmtPrice(PRICE_GBP.annual);
+  $('price-annual-monthly-equiv').textContent = fmtPrice(PRICE_GBP.annual/12);
+  $('price-lifetime-was').textContent = fmtPrice(PRICE_GBP.lifetimeWas);
+  $('price-lifetime-now').textContent = fmtPrice(PRICE_GBP.lifetimeNow);
+
+  const mBtn=$('buy-monthly-btn'), aBtn=$('buy-annual-btn'), lBtn=$('buy-lifetime-btn');
+  mBtn.href=STRIPE_MONTHLY_LINK; aBtn.href=STRIPE_ANNUAL_LINK; lBtn.href=STRIPE_LIFETIME_LINK;
+  [mBtn,aBtn,lBtn].forEach(b=>b.style.display = S.isPremium ? 'none' : 'block');
 }
 function openPremiumModal(){ renderPremiumModal(); $('premium-modal-overlay').classList.add('open'); }
 function closePremiumModal(){ $('premium-modal-overlay').classList.remove('open'); }
@@ -1017,9 +1042,188 @@ $('redeem-code-btn').addEventListener('click', ()=>{
   }
 });
 
+/* ---------- Private Leagues ---------- */
+/*
+  Needs a free Firebase project, because seeing friends' streaks means the
+  data has to live somewhere other than each person's own browser. Setup
+  (~5 min, free):
+  1. https://console.firebase.google.com -> Add project.
+  2. Build -> Firestore Database -> Create database -> Test mode.
+  3. Project settings (gear icon) -> General -> "Your apps" -> click </>
+     (web) -> register app -> copy the firebaseConfig object into
+     FIREBASE_CONFIG below.
+  4. Firestore -> Rules tab -> paste:
+       rules_version = '2';
+       service cloud.firestore {
+         match /databases/{database}/documents {
+           match /players/{id}   { allow read, write: if true; }
+           match /leagues/{code} { allow read, write: if true; }
+         }
+       }
+     No real login system here, so anyone with your Firebase config could
+     technically write this data — fine for a friends leaderboard, just
+     don't put anything sensitive in it.
+  The <script> tags for Firebase are already in <head>. Until
+  FIREBASE_CONFIG is filled in, Premium users just see a setup notice
+  instead of the leagues UI.
+*/
+const FIREBASE_CONFIG = {
+  apiKey: "PASTE_YOUR_API_KEY",
+  authDomain: "PASTE_YOUR_PROJECT.firebaseapp.com",
+  projectId: "PASTE_YOUR_PROJECT_ID",
+  storageBucket: "PASTE_YOUR_PROJECT.appspot.com",
+  messagingSenderId: "PASTE_YOUR_SENDER_ID",
+  appId: "PASTE_YOUR_APP_ID"
+};
+const FIREBASE_READY = typeof firebase !== "undefined" && FIREBASE_CONFIG.apiKey.indexOf("PASTE_YOUR") === -1;
+let db = null;
+if (FIREBASE_READY) { firebase.initializeApp(FIREBASE_CONFIG); db = firebase.firestore(); }
+
+function getDeviceId(){
+  let id = localStorage.getItem('hf_deviceId');
+  if(!id){ id = 'p_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,8); localStorage.setItem('hf_deviceId', id); }
+  return id;
+}
+function getBestStreak(){ return S.habits.length ? Math.max(...S.habits.map(h=>h.streak),0) : 0; }
+
+function syncPlayerToFirebase(){
+  if(!FIREBASE_READY) return Promise.resolve();
+  return db.collection('players').doc(getDeviceId()).set({
+    name: S.userName || 'Anonymous',
+    bestStreak: getBestStreak(),
+    leagueCode: S.leagueCode || '',
+    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+  }, {merge:true}).catch(e=>console.error(e));
+}
+
+function createLeague(){
+  const name=(prompt("Name your private league:","")||"").trim();
+  if(!name) return;
+  const code=Math.random().toString(36).slice(2,8).toUpperCase();
+  db.collection('leagues').doc(code).set({name,code,createdAt:firebase.firestore.FieldValue.serverTimestamp()})
+    .then(()=>{ S.leagueCode=code; save(); return syncPlayerToFirebase(); })
+    .then(()=>{ toast('🏆 League created — code: '+code); renderLeaguesSection(); })
+    .catch(e=>{ console.error(e); toast('Could not create the league.'); });
+}
+function joinLeague(){
+  const code=(prompt("Enter your friend's league code:","")||"").trim().toUpperCase();
+  if(!code) return;
+  db.collection('leagues').doc(code).get().then(doc=>{
+    if(!doc.exists){ toast('No league found with that code.'); return; }
+    S.leagueCode=code; save();
+    return syncPlayerToFirebase().then(()=>{ toast('Joined "'+doc.data().name+'"!'); renderLeaguesSection(); });
+  }).catch(e=>{ console.error(e); toast('Could not join the league.'); });
+}
+function leaveLeague(){
+  S.leagueCode=''; save(); syncPlayerToFirebase(); renderLeaguesSection();
+}
+
+function renderLeaguesSection(){
+  const container=$('leagues-content');
+  if(!container) return;
+
+  if(!S.isPremium){
+    container.innerHTML = `<div style="position:relative;overflow:hidden;padding-bottom:10px">
+      <div style="filter:blur(4px);opacity:.5;pointer-events:none;user-select:none">
+        <div class="lb-row"><span class="fm" style="width:20px;color:var(--dim)">1</span><span style="flex:1;font-size:14px">Jordan</span><span class="fm" style="font-size:12px;color:var(--amber)">🔥18</span></div>
+        <div class="lb-row"><span class="fm" style="width:20px;color:var(--dim)">2</span><span style="flex:1;font-size:14px">Sam</span><span class="fm" style="font-size:12px;color:var(--amber)">🔥11</span></div>
+      </div>
+      <div style="position:absolute;left:0;right:0;bottom:0;top:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;background:linear-gradient(180deg,transparent,var(--card) 55%);padding:0 16px">
+        <div style="font-size:22px">🔒</div>
+        <div class="fd" style="font-weight:700;font-size:13px">Unlock Leagues</div>
+        <p style="font-size:11px;color:var(--dim);text-align:center;max-width:220px;line-height:1.4">See exactly who has the most streaks among your friends.</p>
+        <button class="btn-primary" id="unlock-league-btn" style="width:auto;padding:8px 20px;font-size:12px;margin-top:2px">⚡ Go Premium</button>
+      </div>
+    </div>`;
+    const b=$('unlock-league-btn'); if(b) b.addEventListener('click', openPremiumModal);
+    return;
+  }
+
+  if(!FIREBASE_READY){
+    container.innerHTML = `<p style="font-size:12px;color:var(--dim);line-height:1.5">Leagues need a one-time free Firebase setup — see the comment above the Leagues section in the script.</p>`;
+    return;
+  }
+
+  if(!S.leagueCode){
+    container.innerHTML = `<p style="font-size:13px;color:var(--dim);line-height:1.5;margin-bottom:12px">Create a private league and share the code with friends, or join one they've made.</p>
+      <div style="display:flex;gap:8px">
+        <button class="btn-primary" id="create-league-btn" style="font-size:13px;padding:10px 0">+ Create</button>
+        <button class="btn-primary" id="join-league-btn" style="font-size:13px;padding:10px 0;background:var(--muted);color:var(--fg)">Join</button>
+      </div>`;
+    $('create-league-btn').addEventListener('click', createLeague);
+    $('join-league-btn').addEventListener('click', joinLeague);
+    return;
+  }
+
+  container.innerHTML = `<p class="fm" style="font-size:11px;color:var(--dim);margin-bottom:10px">Code: <span style="color:var(--fg)">${S.leagueCode}</span></p><div id="league-rows"><p style="font-size:12px;color:var(--dim)">Loading…</p></div><button id="leave-league-btn" style="font-size:11px;color:var(--dim);margin-top:10px;text-decoration:underline">Leave league</button>`;
+  $('leave-league-btn').addEventListener('click', leaveLeague);
+  syncPlayerToFirebase().then(()=>{
+    return db.collection('players').where('leagueCode','==',S.leagueCode).orderBy('bestStreak','desc').get();
+  }).then(snap=>{
+    const rows=$('league-rows'); if(!rows) return;
+    if(snap.empty){ rows.innerHTML='<p style="font-size:12px;color:var(--dim)">No members yet.</p>'; return; }
+    let html=''; let rank=0;
+    snap.forEach(doc=>{
+      rank++;
+      const d=doc.data();
+      const mine = doc.id===getDeviceId();
+      html+=`<div class="lb-row"><span class="fm" style="width:20px;text-align:center;color:${rank===1?'var(--amber)':'var(--dim)'}">${rank===1?'🥇':rank===2?'🥈':rank===3?'🥉':rank}</span><span style="flex:1;font-size:14px;color:${mine?'var(--accent)':'var(--fg)'}">${d.name||'Anonymous'}${mine?' (You)':''}</span><span class="fm" style="font-size:12px;color:var(--amber)">🔥${d.bestStreak||0}</span></div>`;
+    });
+    rows.innerHTML=html;
+  }).catch(e=>{
+    console.error(e);
+    const rows=$('league-rows'); if(rows) rows.innerHTML='<p style="font-size:12px;color:var(--dim)">Could not load — if the console shows a link to create a missing index, click it and try again.</p>';
+  });
+}
+
+/* ---------- Language ---------- */
+/*
+  Honest scope note: this translates the app's core navigation chrome
+  (tabs, greeting, key buttons, settings labels) into a solid set of
+  major languages. It does NOT translate dynamic content you can't fake —
+  habit names, journal entries, and notes stay exactly as the user typed
+  them, since guessing a "translation" for someone's own words would be
+  wrong. Add more languages by extending TRANSLATIONS below.
+*/
+const LANGUAGE_NAMES = { en:'English', es:'Español', fr:'Français', de:'Deutsch', pt:'Português', it:'Italiano', hi:'हिन्दी', ar:'العربية', zh:'中文', ja:'日本語' };
+const TRANSLATIONS = {
+  en:{ tabs:['Today','Stats','Journal','Badges'], greeting:'Good morning,', crushed:'🎉 Crushed it!', settings:'Settings', language:'Language', goPremium:'⚡ Premium', addHabit:'Add New Habit' },
+  es:{ tabs:['Hoy','Stats','Diario','Insignias'], greeting:'Buenos días,', crushed:'🎉 ¡Lo lograste!', settings:'Ajustes', language:'Idioma', goPremium:'⚡ Premium', addHabit:'Añadir hábito' },
+  fr:{ tabs:['Aujourd\u2019hui','Stats','Journal','Badges'], greeting:'Bonjour,', crushed:'🎉 Bravo !', settings:'Paramètres', language:'Langue', goPremium:'⚡ Premium', addHabit:'Ajouter une habitude' },
+  de:{ tabs:['Heute','Stats','Journal','Abzeichen'], greeting:'Guten Morgen,', crushed:'🎉 Geschafft!', settings:'Einstellungen', language:'Sprache', goPremium:'⚡ Premium', addHabit:'Neue Gewohnheit' },
+  pt:{ tabs:['Hoje','Stats','Diário','Emblemas'], greeting:'Bom dia,', crushed:'🎉 Mandou bem!', settings:'Configurações', language:'Idioma', goPremium:'⚡ Premium', addHabit:'Novo hábito' },
+  it:{ tabs:['Oggi','Stats','Diario','Distintivi'], greeting:'Buongiorno,', crushed:'🎉 Fatto!', settings:'Impostazioni', language:'Lingua', goPremium:'⚡ Premium', addHabit:'Nuova abitudine' },
+  hi:{ tabs:['आज','आँकड़े','डायरी','बैज'], greeting:'सुप्रभात,', crushed:'🎉 शानदार!', settings:'सेटिंग्स', language:'भाषा', goPremium:'⚡ प्रीमियम', addHabit:'नई आदत जोड़ें' },
+  ar:{ tabs:['اليوم','إحصائيات','يوميات','أوسمة'], greeting:'صباح الخير،', crushed:'🎉 أحسنت!', settings:'الإعدادات', language:'اللغة', goPremium:'⚡ بريميوم', addHabit:'إضافة عادة' },
+  zh:{ tabs:['今天','统计','日记','徽章'], greeting:'早上好，', crushed:'🎉 完成啦！', settings:'设置', language:'语言', goPremium:'⚡ 高级版', addHabit:'添加习惯' },
+  ja:{ tabs:['今日','統計','日記','バッジ'], greeting:'おはようございます、', crushed:'🎉 達成！', settings:'設定', language:'言語', goPremium:'⚡ プレミアム', addHabit:'新しい習慣' }
+};
+function t(key){
+  const lang = S.language || 'en';
+  return (TRANSLATIONS[lang] && TRANSLATIONS[lang][key]) || TRANSLATIONS.en[key];
+}
+function applyLanguage(){
+  const tabLabels = t('tabs');
+  document.querySelectorAll('.tab-btn').forEach((btn,i)=>{ if(tabLabels[i]) btn.textContent = tabLabels[i]; });
+  renderHeader();
+}
+function populateLanguageSelect(){
+  const sel = $('language-select');
+  if(!sel) return;
+  sel.innerHTML = Object.keys(LANGUAGE_NAMES).map(code=>`<option value="${code}"${code===S.language?' selected':''}>${LANGUAGE_NAMES[code]}</option>`).join('');
+}
+$('language-select').addEventListener('change', e=>{
+  S.language = e.target.value; save();
+  applyLanguage();
+  toast('🌐 '+LANGUAGE_NAMES[S.language]);
+});
+
 /* ---------- Settings ---------- */
 function openSettingsModal(){
   $('settings-plan-text').textContent = S.isPremium ? 'Premium ✨' : 'Free';
+  $('settings-title-text').textContent = t('settings');
+  $('settings-language-label').textContent = t('language');
+  populateLanguageSelect();
   $('settings-modal-overlay').classList.add('open');
 }
 function closeSettingsModal(){ $('settings-modal-overlay').classList.remove('open'); }
@@ -1028,6 +1232,7 @@ $('settings-modal-overlay').addEventListener('click', e=>{ if(e.target===$('sett
 
 renderHeader();
 renderToday();
+applyLanguage();
 </script>
 </body>
 </html>
