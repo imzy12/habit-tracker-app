@@ -99,10 +99,15 @@ main{flex:1;overflow-y:auto;padding:0 20px 40px}
 #modal-sheet{width:100%;max-width:480px;margin:0 auto;background:var(--card);border:1px solid var(--border);border-radius:24px 24px 0 0;padding:24px;transform:translateY(100%);transition:transform .35s cubic-bezier(.34,1.56,.64,1);box-shadow:var(--shadow-md)}
 #modal-overlay.open #modal-sheet{transform:translateY(0)}
 
-#premium-modal-overlay,#settings-modal-overlay{position:fixed;inset:0;z-index:50;display:flex;align-items:flex-end;background:rgba(0,0,0,.75);backdrop-filter:blur(5px);opacity:0;pointer-events:none;transition:opacity .25s}
-#premium-modal-overlay.open,#settings-modal-overlay.open{opacity:1;pointer-events:all}
-#premium-modal-sheet,#settings-modal-sheet{width:100%;max-width:480px;margin:0 auto;background:var(--card);border:1px solid var(--border);border-radius:24px 24px 0 0;padding:24px;max-height:85vh;overflow-y:auto;transform:translateY(100%);transition:transform .35s cubic-bezier(.34,1.56,.64,1);box-shadow:var(--shadow-md)}
-#premium-modal-overlay.open #premium-modal-sheet,#settings-modal-overlay.open #settings-modal-sheet{transform:translateY(0)}
+#premium-modal-overlay{position:fixed;inset:0;z-index:50;display:flex;align-items:flex-end;background:rgba(0,0,0,.75);backdrop-filter:blur(5px);opacity:0;pointer-events:none;transition:opacity .25s}
+#premium-modal-overlay.open{opacity:1;pointer-events:all}
+#premium-modal-sheet{width:100%;max-width:480px;margin:0 auto;background:var(--card);border:1px solid var(--border);border-radius:24px 24px 0 0;padding:24px;max-height:85vh;overflow-y:auto;transform:translateY(100%);transition:transform .35s cubic-bezier(.34,1.56,.64,1);box-shadow:var(--shadow-md)}
+#premium-modal-overlay.open #premium-modal-sheet{transform:translateY(0)}
+
+#settings-modal-overlay{position:fixed;inset:0;z-index:50;display:flex;justify-content:flex-end;background:rgba(0,0,0,.75);backdrop-filter:blur(5px);opacity:0;pointer-events:none;transition:opacity .3s}
+#settings-modal-overlay.open{opacity:1;pointer-events:all}
+#settings-modal-sheet{width:85%;max-width:360px;height:100%;background:var(--card);border-left:1px solid var(--border);padding:24px;overflow-y:auto;transform:translateX(100%);transition:transform .35s cubic-bezier(.34,1.56,.64,1);box-shadow:var(--shadow-md)}
+#settings-modal-overlay.open #settings-modal-sheet{transform:translateX(0)}
 
 .icon-grid{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:16px}
 .icon-opt{width:46px;height:46px;border-radius:14px;font-size:22px;display:flex;align-items:center;justify-content:center;background:var(--muted);cursor:pointer;border:none;transition:all .15s}
@@ -232,6 +237,8 @@ main{flex:1;overflow-y:auto;padding:0 20px 40px}
       <button class="freq-tab" data-freq="Custom">Custom</button>
     </div>
     <div class="custom-days-row" id="custom-days-row" style="display:none"></div>
+    <div class="section-lbl">REMINDER (OPTIONAL)</div>
+    <input id="habit-reminder-input" class="text-input" type="time"/>
     <button class="btn-primary" id="create-habit-btn">Create Habit</button>
   </div>
 </div>
@@ -362,6 +369,16 @@ main{flex:1;overflow-y:auto;padding:0 20px 40px}
       </div>
     </div>
 
+    <div class="section-lbl">NOTIFICATIONS</div>
+    <div class="card" style="margin-bottom:18px">
+      <p style="font-size:12px;color:var(--dim);line-height:1.5;margin-bottom:10px">Set a reminder time when you create a habit — we'll notify you (and play a sound) if it isn't checked off yet by that time.</p>
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:13px;color:var(--dim)">Browser permission</span>
+        <button class="btn-primary" id="enable-notif-btn" style="width:auto;padding:8px 18px;font-size:12px">Enable</button>
+      </div>
+      <p id="notif-status-text" class="fm" style="font-size:11px;color:var(--dim);margin-top:8px"></p>
+    </div>
+
     <div class="section-lbl">ABOUT</div>
     <div class="card" style="margin-bottom:18px">
       <p style="font-size:13px;line-height:1.6;color:var(--fg)">Habit Friction helps you build streaks that stick by removing the friction that usually gets in the way — one tap to check in, XP and levels to keep it fun, and Leagues to keep you honest with friends.</p>
@@ -422,7 +439,7 @@ if (S.referralSource === undefined) S.referralSource = '';
 if (!S.completionLog) S.completionLog = {};
 if (S.leagueCode === undefined) S.leagueCode = '';
 if (!S.language) S.language = 'en';
-S.habits.forEach(h => { if (!h.dates) h.dates = []; });
+S.habits.forEach(h => { if (!h.dates) h.dates = []; if (h.reminderTime === undefined) h.reminderTime = ''; if (h.notifiedDate === undefined) h.notifiedDate = ''; });
 
 /* One-time cleanup: the very first version of this app shipped with 5 preset
    habits (ids '1'-'5'). Anyone who opened the app back then still has them
@@ -643,6 +660,7 @@ function renderToday(){
         <div style="display:flex;align-items:center;gap:10px;margin-top:4px">
           <span class="fm" style="font-size:11px;color:var(--dim)">${h.freq}</span>
           ${h.streak>0?`<span class="fm" style="font-size:11px;color:var(--amber)">🔥 ${h.streak}d</span>`:''}
+          ${h.reminderTime?`<span class="fm" style="font-size:11px;color:var(--dim)">⏰ ${h.reminderTime}</span>`:''}
         </div>
       </div>
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
@@ -825,7 +843,7 @@ function checkBadges(){
 }
 
 function openModal(){
-  newIcon=ICONS[0];newColor=COLORS[0];newFreq='Everyday';newCustomDays=[];$('habit-name-input').value='';
+  newIcon=ICONS[0];newColor=COLORS[0];newFreq='Everyday';newCustomDays=[];$('habit-name-input').value='';$('habit-reminder-input').value='';
   renderPickers();renderFreqTabs();updateHabitPreview();$('modal-overlay').classList.add('open');
   setTimeout(()=>$('habit-name-input').focus(),360);
 }
@@ -882,8 +900,9 @@ $('create-habit-btn').addEventListener('click',()=>{
     closeModal(); toast('🔒 Free plan limit reached'); openPremiumModal(); return;
   }
   haptic(15); pop($('create-habit-btn'));
-  S.habits.push({id:Date.now().toString(),name,icon:newIcon,color:newColor,streak:0,xp:10,freq:computeFreqLabel(),done:false,dates:[]});
-  save();closeModal();toast('✅ "'+name+'" habit created!');renderHeader();renderToday();
+  const reminderTime=$('habit-reminder-input').value||'';
+  S.habits.push({id:Date.now().toString(),name,icon:newIcon,color:newColor,streak:0,xp:10,freq:computeFreqLabel(),done:false,dates:[],reminderTime,notifiedDate:''});
+  save();closeModal();toast('✅ "'+name+'" habit created!'+(reminderTime?' Reminder set for '+reminderTime+'.':''));renderHeader();renderToday();
 });
 $('habit-name-input').addEventListener('keydown',e=>{if(e.key==='Enter')$('create-habit-btn').click();});
 
@@ -1218,12 +1237,59 @@ $('language-select').addEventListener('change', e=>{
   toast('🌐 '+LANGUAGE_NAMES[S.language]);
 });
 
+/* ---------- Notifications & reminders ---------- */
+
+function updateNotifStatus(){
+  const statusEl=$('notif-status-text'), btn=$('enable-notif-btn');
+  if(!('Notification' in window)){ statusEl.textContent='Not supported in this browser.'; btn.style.display='none'; return; }
+  if(Notification.permission==='granted'){ statusEl.textContent='✅ Notifications enabled.'; btn.style.display='none'; }
+  else if(Notification.permission==='denied'){ statusEl.textContent='Blocked — enable notifications for this site in your browser settings.'; btn.style.display='none'; }
+  else { statusEl.textContent=''; btn.style.display='block'; }
+}
+$('enable-notif-btn').addEventListener('click', ()=>{
+  if(!('Notification' in window)) return;
+  Notification.requestPermission().then(updateNotifStatus);
+});
+
+function playReminderSound(){
+  try{
+    const ctx=new (window.AudioContext||window.webkitAudioContext)();
+    [0,0.14].forEach((delay,i)=>{
+      const osc=ctx.createOscillator(), gain=ctx.createGain();
+      osc.type='sine'; osc.frequency.value = i===0 ? 880 : 1175;
+      gain.gain.value=0.001;
+      osc.connect(gain); gain.connect(ctx.destination);
+      const t0=ctx.currentTime+delay;
+      gain.gain.setValueAtTime(0.001,t0);
+      gain.gain.exponentialRampToValueAtTime(0.18,t0+0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001,t0+0.32);
+      osc.start(t0); osc.stop(t0+0.34);
+    });
+  }catch(e){}
+}
+
+setInterval(()=>{
+  if(!('Notification' in window) || Notification.permission!=='granted') return;
+  const now=new Date();
+  const currentTime=now.toTimeString().slice(0,5);
+  S.habits.forEach(h=>{
+    if(!h.reminderTime || h.reminderTime!==currentTime) return;
+    if(h.done) return;
+    if(h.notifiedDate===todayStr) return;
+    new Notification('Habit Friction', { body: h.icon+' Time for: '+h.name });
+    playReminderSound();
+    h.notifiedDate=todayStr;
+    save();
+  });
+}, 30000);
+
 /* ---------- Settings ---------- */
 function openSettingsModal(){
   $('settings-plan-text').textContent = S.isPremium ? 'Premium ✨' : 'Free';
   $('settings-title-text').textContent = t('settings');
   $('settings-language-label').textContent = t('language');
   populateLanguageSelect();
+  updateNotifStatus();
   $('settings-modal-overlay').classList.add('open');
 }
 function closeSettingsModal(){ $('settings-modal-overlay').classList.remove('open'); }
