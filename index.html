@@ -450,6 +450,16 @@ if (S.habits.some(h => OLD_DEFAULT_IDS.includes(h.id))) {
   S.habits = S.habits.filter(h => !OLD_DEFAULT_IDS.includes(h.id));
   save();
 }
+
+/* Same issue, different field: the first version also shipped with 47 XP
+   and 2 pre-earned badges ('first','week') already sitting there by default.
+   This is that exact old signature — genuine progress could never land on
+   this precise combination by coincidence — so it's safe to zero out. */
+if (S.totalXP === 47 && S.earnedBadges.length === 2 && S.earnedBadges.includes('first') && S.earnedBadges.includes('week')) {
+  S.totalXP = 0;
+  S.earnedBadges = [];
+  save();
+}
 const $=id=>document.getElementById(id);
 const level=xp=>Math.floor(xp/100)+1;
 const xpMod=xp=>xp%100;
@@ -773,13 +783,6 @@ function renderStats(){
             <div class="streak-bar-bg"><div class="streak-bar-fill" style="background:${h.color};width:${Math.min((h.streak/30)*100,100)}%"></div></div>
           </div>
         </div>`).join('')}
-    </div>
-    <div class="card">
-      <div class="fd" style="font-weight:600;font-size:14px;color:var(--dim);margin-bottom:12px">Mood Over Time</div>
-      <div style="display:flex;align-items:flex-end;gap:4px;height:72px">${[4,3,5,4,2,4,5,3,4,4,5,4,3,5,4,3].map(v=>`<div style="flex:1;border-radius:3px 3px 0 0;height:${(v/5)*100}%;background:${v>=4?'var(--accent)':v===3?'var(--primary)':'var(--red)'};opacity:.75"></div>`).join('')}</div>
-      <div style="display:flex;justify-content:space-between;margin-top:6px">
-        <span class="fm" style="font-size:11px;color:var(--dim)">2 weeks ago</span><span class="fm" style="font-size:11px;color:var(--dim)">Today</span>
-      </div>
     </div>`;
   $('main').className='fade-in';
 }
