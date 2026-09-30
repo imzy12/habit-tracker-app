@@ -211,7 +211,7 @@ main{flex:1;overflow-y:auto;padding:0 20px 40px}
 <div id="modal-overlay">
   <div id="modal-sheet">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
-      <span class="fd" style="font-weight:700;font-size:20px">Create New Habit</span>
+      <span class="fd" id="modal-title-text" style="font-weight:700;font-size:20px">Create New Habit</span>
       <button id="modal-close" style="width:32px;height:32px;border-radius:12px;font-size:16px;color:var(--dim);display:flex;align-items:center;justify-content:center">✕</button>
     </div>
     <input id="habit-name-input" class="text-input" type="text" placeholder="Name your habit... e.g., Read 10 Pages"/>
@@ -240,6 +240,7 @@ main{flex:1;overflow-y:auto;padding:0 20px 40px}
     <div class="section-lbl">REMINDER (OPTIONAL)</div>
     <input id="habit-reminder-input" class="text-input" type="time"/>
     <button class="btn-primary" id="create-habit-btn">Create Habit</button>
+    <button id="delete-habit-btn" style="display:none;width:100%;text-align:center;padding:12px 0;margin-top:8px;color:var(--red);font-size:13px;font-weight:600">Delete Habit</button>
   </div>
 </div>
 
