@@ -451,14 +451,17 @@ if (S.habits.some(h => OLD_DEFAULT_IDS.includes(h.id))) {
   save();
 }
 
-/* Same issue, different field: the first version also shipped with 47 XP
-   and 2 pre-earned badges ('first','week') already sitting there by default.
-   This is that exact old signature — genuine progress could never land on
-   this precise combination by coincidence — so it's safe to zero out. */
-if (S.totalXP === 47 && S.earnedBadges.length === 2 && S.earnedBadges.includes('first') && S.earnedBadges.includes('week')) {
+/* Same issue, different field: XP and "earned" badges from the earliest
+   testing versions were still stuck showing as earned even when they
+   didn't match the old default signature exactly. This runs once per
+   browser (flagged so it never repeats) and wipes XP/badges back to a
+   genuine zero state — from here on, badges only show as earned once
+   checkBadges() actually detects you've hit that criteria for real. */
+if (!localStorage.getItem('hf_badges_reset_v1')) {
   S.totalXP = 0;
   S.earnedBadges = [];
   save();
+  localStorage.setItem('hf_badges_reset_v1', 'true');
 }
 const $=id=>document.getElementById(id);
 const level=xp=>Math.floor(xp/100)+1;
@@ -1145,12 +1148,12 @@ function renderLeaguesSection(){
   if(!container) return;
 
   if(!S.isPremium){
-    container.innerHTML = `<div style="position:relative;overflow:hidden;padding-bottom:10px">
+    container.innerHTML = `<div style="position:relative;overflow:hidden;min-height:160px">
       <div style="filter:blur(4px);opacity:.5;pointer-events:none;user-select:none">
         <div class="lb-row"><span class="fm" style="width:20px;color:var(--dim)">1</span><span style="flex:1;font-size:14px">Jordan</span><span class="fm" style="font-size:12px;color:var(--amber)">🔥18</span></div>
         <div class="lb-row"><span class="fm" style="width:20px;color:var(--dim)">2</span><span style="flex:1;font-size:14px">Sam</span><span class="fm" style="font-size:12px;color:var(--amber)">🔥11</span></div>
       </div>
-      <div style="position:absolute;left:0;right:0;bottom:0;top:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;background:linear-gradient(180deg,transparent,var(--card) 55%);padding:0 16px">
+      <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;background:linear-gradient(180deg,transparent,var(--card) 55%);padding:12px 16px">
         <div style="font-size:22px">🔒</div>
         <div class="fd" style="font-weight:700;font-size:13px">Unlock Leagues</div>
         <p style="font-size:11px;color:var(--dim);text-align:center;max-width:220px;line-height:1.4">See exactly who has the most streaks among your friends.</p>
